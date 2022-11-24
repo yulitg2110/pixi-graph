@@ -30,11 +30,16 @@ export function createNodeLabel(nodeLabelGfx: Container) {
 export function updateNodeLabelStyle(nodeLabelGfx: Container, nodeStyle: NodeStyle, textureCache: TextureCache) {
   const nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
 
-  const nodeLabelTextTextureKey = [NODE_LABEL_TEXT, nodeStyle.label.fontFamily, nodeStyle.label.fontSize, nodeStyle.label.content].join(DELIMETER);
+  const nodeLabelTextTextureKey = [
+    NODE_LABEL_TEXT,
+    nodeStyle.label.fontFamily,
+    nodeStyle.label.fontSize,
+    nodeStyle.label.content,
+  ].join(DELIMETER);
   const nodeLabelTextTexture = textureCache.get(nodeLabelTextTextureKey, () => {
     const text = textToPixi(nodeStyle.label.type, nodeStyle.label.content, {
       fontFamily: nodeStyle.label.fontFamily,
-      fontSize: nodeStyle.label.fontSize
+      fontSize: nodeStyle.label.fontSize,
     });
     return text;
   });
@@ -57,7 +62,7 @@ export function updateNodeLabelVisibility(nodeLabelGfx: Container, zoomStep: num
   // nodeLabelGfx -> nodeLabelBackground
   const nodeLabelBackground = nodeLabelGfx.getChildByName!(NODE_LABEL_BACKGROUND) as Sprite;
   nodeLabelBackground.visible = nodeLabelBackground.visible && zoomStep >= 3;
-  
+
   // nodeLabelGfx -> nodeLabelText
   const nodeLabelText = nodeLabelGfx.getChildByName!(NODE_LABEL_TEXT) as BitmapText;
   nodeLabelText.visible = nodeLabelText.visible && zoomStep >= 3;

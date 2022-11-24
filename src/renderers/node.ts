@@ -57,11 +57,16 @@ export function updateNodeStyle(nodeGfx: Container, nodeStyle: NodeStyle, textur
     return graphics;
   });
 
-  const nodeIconTextureKey = [NODE_ICON, nodeStyle.icon.fontFamily, nodeStyle.icon.fontSize, nodeStyle.icon.content].join(DELIMETER);
+  const nodeIconTextureKey = [
+    NODE_ICON,
+    nodeStyle.icon.fontFamily,
+    nodeStyle.icon.fontSize,
+    nodeStyle.icon.content,
+  ].join(DELIMETER);
   const nodeIconTexture = textureCache.get(nodeIconTextureKey, () => {
     const text = textToPixi(nodeStyle.icon.type, nodeStyle.icon.content, {
       fontFamily: nodeStyle.icon.fontFamily,
-      fontSize: nodeStyle.icon.fontSize
+      fontSize: nodeStyle.icon.fontSize,
     });
     return text;
   });

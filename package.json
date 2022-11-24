@@ -17,7 +17,8 @@
     "build": "rimraf dist && rollup -c",
     "dev": "rollup -c -w",
     "test": "jest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "format": "prettier --write './src/**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
   },
   "dependencies": {
     "@pixi-essentials/cull": "^1.1.0",
@@ -39,6 +40,7 @@
     "deepmerge": "^4.2.2",
     "events": "^3.3.0",
     "pixi-viewport": "^4.30.4",
+    "prettier": "^2.8.0",
     "tiny-typed-emitter": "^2.0.3"
   },
   "peerDependencies": {

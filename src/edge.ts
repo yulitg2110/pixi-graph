@@ -31,18 +31,30 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     const edgeGfx = new Container();
     edgeGfx.interactive = true;
     edgeGfx.buttonMode = true;
-    edgeGfx.on('mousemove', (event: InteractionEvent) => this.emit('mousemove', event.data.originalEvent as MouseEvent));
-    edgeGfx.on('mouseover', (event: InteractionEvent) => this.emit('mouseover', event.data.originalEvent as MouseEvent));
+    edgeGfx.on('mousemove', (event: InteractionEvent) =>
+      this.emit('mousemove', event.data.originalEvent as MouseEvent)
+    );
+    edgeGfx.on('mouseover', (event: InteractionEvent) =>
+      this.emit('mouseover', event.data.originalEvent as MouseEvent)
+    );
     edgeGfx.on('mouseout', (event: InteractionEvent) => this.emit('mouseout', event.data.originalEvent as MouseEvent));
-    edgeGfx.on('mousedown', (event: InteractionEvent) => this.emit('mousedown', event.data.originalEvent as MouseEvent));
+    edgeGfx.on('mousedown', (event: InteractionEvent) =>
+      this.emit('mousedown', event.data.originalEvent as MouseEvent)
+    );
     edgeGfx.on('mouseup', (event: InteractionEvent) => this.emit('mouseup', event.data.originalEvent as MouseEvent));
     createEdge(edgeGfx);
     return edgeGfx;
   }
 
   updatePosition(sourceNodePosition: IPointData, targetNodePosition: IPointData) {
-    const position = { x: (sourceNodePosition.x + targetNodePosition.x) / 2, y: (sourceNodePosition.y + targetNodePosition.y) / 2 };
-    const rotation = -Math.atan2(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
+    const position = {
+      x: (sourceNodePosition.x + targetNodePosition.x) / 2,
+      y: (sourceNodePosition.y + targetNodePosition.y) / 2,
+    };
+    const rotation = -Math.atan2(
+      targetNodePosition.x - sourceNodePosition.x,
+      targetNodePosition.y - sourceNodePosition.y
+    );
     const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
     this.edgeGfx.position.copyFrom(position);
     this.edgeGfx.rotation = rotation;

@@ -37,19 +37,31 @@ export type NodeStyle = GraphStyle['node'];
 export type EdgeStyle = GraphStyle['edge'];
 
 export type StyleDefinition<Style, Attributes> =
-  ((attributes: Attributes) => Style) |
-  {[Key in keyof Style]?: StyleDefinition<Style[Key], Attributes>} |
-  Style;
+  | ((attributes: Attributes) => Style)
+  | { [Key in keyof Style]?: StyleDefinition<Style[Key], Attributes> }
+  | Style;
 
-export type NodeStyleDefinition<NodeAttributes extends BaseNodeAttributes = BaseNodeAttributes> = StyleDefinition<NodeStyle, NodeAttributes>;
-export type EdgeStyleDefinition<EdgeAttributes extends BaseEdgeAttributes = BaseEdgeAttributes> = StyleDefinition<EdgeStyle, EdgeAttributes>;
+export type NodeStyleDefinition<NodeAttributes extends BaseNodeAttributes = BaseNodeAttributes> = StyleDefinition<
+  NodeStyle,
+  NodeAttributes
+>;
+export type EdgeStyleDefinition<EdgeAttributes extends BaseEdgeAttributes = BaseEdgeAttributes> = StyleDefinition<
+  EdgeStyle,
+  EdgeAttributes
+>;
 
-export interface GraphStyleDefinition<NodeAttributes extends BaseNodeAttributes = BaseNodeAttributes, EdgeAttributes extends BaseEdgeAttributes = BaseEdgeAttributes> {
+export interface GraphStyleDefinition<
+  NodeAttributes extends BaseNodeAttributes = BaseNodeAttributes,
+  EdgeAttributes extends BaseEdgeAttributes = BaseEdgeAttributes
+> {
   node?: NodeStyleDefinition<NodeAttributes>;
   edge?: EdgeStyleDefinition<EdgeAttributes>;
 }
 
-export function resolveStyleDefinition<Style, Attributes>(styleDefinition: StyleDefinition<Style, Attributes>, attributes: Attributes): Style {
+export function resolveStyleDefinition<Style, Attributes>(
+  styleDefinition: StyleDefinition<Style, Attributes>,
+  attributes: Attributes
+): Style {
   let style: Style;
   if (styleDefinition instanceof Function) {
     style = styleDefinition(attributes);
@@ -65,8 +77,13 @@ export function resolveStyleDefinition<Style, Attributes>(styleDefinition: Style
   return style;
 }
 
-export function resolveStyleDefinitions<Style, Attributes>(styleDefinitions: (StyleDefinition<Style, Attributes> | undefined)[], attributes: Attributes): Style {
-  const styles = styleDefinitions.filter(x => !!x).map(styleDefinition => resolveStyleDefinition(styleDefinition!, attributes));
+export function resolveStyleDefinitions<Style, Attributes>(
+  styleDefinitions: (StyleDefinition<Style, Attributes> | undefined)[],
+  attributes: Attributes
+): Style {
+  const styles = styleDefinitions
+    .filter((x) => !!x)
+    .map((styleDefinition) => resolveStyleDefinition(styleDefinition!, attributes));
   const style = deepmerge.all<Style>(styles);
   return style;
 }

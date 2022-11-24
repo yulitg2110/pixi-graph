@@ -18,7 +18,12 @@ export class TextureCache {
     if (!texture) {
       const container = defaultCallback();
       const region = container.getLocalBounds(undefined, true);
-      const roundedRegion = new Rectangle(Math.floor(region.x), Math.floor(region.y), Math.ceil(region.width), Math.ceil(region.height));
+      const roundedRegion = new Rectangle(
+        Math.floor(region.x),
+        Math.floor(region.y),
+        Math.ceil(region.width),
+        Math.ceil(region.height)
+      );
       texture = this.renderer.generateTexture(container, SCALE_MODES.LINEAR, this.renderer.resolution, roundedRegion);
       this.textures.set(key, texture);
     }
@@ -36,7 +41,7 @@ export class TextureCache {
   }
 
   clear() {
-    Array.from(this.textures.keys()).forEach(key => {
+    Array.from(this.textures.keys()).forEach((key) => {
       this.delete(key);
     });
   }
