@@ -33,13 +33,13 @@ function textToPixi(type, content, style) {
         text = new Text(content, {
             fontFamily: style.fontFamily,
             fontSize: style.fontSize,
-            fill: WHITE$1
+            fill: WHITE$1,
         });
     }
     else if (type === TextType.BITMAP_TEXT) {
         text = new BitmapText(content, {
             fontName: style.fontFamily,
-            fontSize: style.fontSize
+            fontSize: style.fontSize,
         });
     }
     else {
@@ -97,7 +97,9 @@ function resolveStyleDefinition(styleDefinition, attributes) {
     return style;
 }
 function resolveStyleDefinitions(styleDefinitions, attributes) {
-    var styles = styleDefinitions.filter(function (x) { return !!x; }).map(function (styleDefinition) { return resolveStyleDefinition(styleDefinition, attributes); });
+    var styles = styleDefinitions
+        .filter(function (x) { return !!x; })
+        .map(function (styleDefinition) { return resolveStyleDefinition(styleDefinition, attributes); });
     var style = deepmerge.all(styles);
     return style;
 }
@@ -189,11 +191,16 @@ function updateNodeStyle(nodeGfx, nodeStyle, textureCache) {
         graphics.drawCircle(nodeOuterSize, nodeOuterSize, nodeStyle.size);
         return graphics;
     });
-    var nodeIconTextureKey = [NODE_ICON, nodeStyle.icon.fontFamily, nodeStyle.icon.fontSize, nodeStyle.icon.content].join(DELIMETER$1);
+    var nodeIconTextureKey = [
+        NODE_ICON,
+        nodeStyle.icon.fontFamily,
+        nodeStyle.icon.fontSize,
+        nodeStyle.icon.content,
+    ].join(DELIMETER$1);
     var nodeIconTexture = textureCache.get(nodeIconTextureKey, function () {
         var text = textToPixi(nodeStyle.icon.type, nodeStyle.icon.content, {
             fontFamily: nodeStyle.icon.fontFamily,
-            fontSize: nodeStyle.icon.fontSize
+            fontSize: nodeStyle.icon.fontSize,
         });
         return text;
     });
@@ -240,11 +247,16 @@ function createNodeLabel(nodeLabelGfx) {
 function updateNodeLabelStyle(nodeLabelGfx, nodeStyle, textureCache) {
     var _a, _b;
     var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
-    var nodeLabelTextTextureKey = [NODE_LABEL_TEXT, nodeStyle.label.fontFamily, nodeStyle.label.fontSize, nodeStyle.label.content].join(DELIMETER);
+    var nodeLabelTextTextureKey = [
+        NODE_LABEL_TEXT,
+        nodeStyle.label.fontFamily,
+        nodeStyle.label.fontSize,
+        nodeStyle.label.content,
+    ].join(DELIMETER);
     var nodeLabelTextTexture = textureCache.get(nodeLabelTextTextureKey, function () {
         var text = textToPixi(nodeStyle.label.type, nodeStyle.label.content, {
             fontFamily: nodeStyle.label.fontFamily,
-            fontSize: nodeStyle.label.fontSize
+            fontSize: nodeStyle.label.fontSize,
         });
         return text;
     });
@@ -285,10 +297,16 @@ var PixiNode = /** @class */ (function (_super) {
         var nodeGfx = new Container();
         nodeGfx.interactive = true;
         nodeGfx.buttonMode = true;
-        nodeGfx.on('mousemove', function (event) { return _this.emit('mousemove', event.data.originalEvent); });
-        nodeGfx.on('mouseover', function (event) { return _this.emit('mouseover', event.data.originalEvent); });
+        nodeGfx.on('mousemove', function (event) {
+            return _this.emit('mousemove', event.data.originalEvent);
+        });
+        nodeGfx.on('mouseover', function (event) {
+            return _this.emit('mouseover', event.data.originalEvent);
+        });
         nodeGfx.on('mouseout', function (event) { return _this.emit('mouseout', event.data.originalEvent); });
-        nodeGfx.on('mousedown', function (event) { return _this.emit('mousedown', event.data.originalEvent); });
+        nodeGfx.on('mousedown', function (event) {
+            return _this.emit('mousedown', event.data.originalEvent);
+        });
         nodeGfx.on('mouseup', function (event) { return _this.emit('mouseup', event.data.originalEvent); });
         createNode(nodeGfx);
         return nodeGfx;
@@ -298,11 +316,21 @@ var PixiNode = /** @class */ (function (_super) {
         var nodeLabelGfx = new Container();
         nodeLabelGfx.interactive = true;
         nodeLabelGfx.buttonMode = true;
-        nodeLabelGfx.on('mousemove', function (event) { return _this.emit('mousemove', event.data.originalEvent); });
-        nodeLabelGfx.on('mouseover', function (event) { return _this.emit('mouseover', event.data.originalEvent); });
-        nodeLabelGfx.on('mouseout', function (event) { return _this.emit('mouseout', event.data.originalEvent); });
-        nodeLabelGfx.on('mousedown', function (event) { return _this.emit('mousedown', event.data.originalEvent); });
-        nodeLabelGfx.on('mouseup', function (event) { return _this.emit('mouseup', event.data.originalEvent); });
+        nodeLabelGfx.on('mousemove', function (event) {
+            return _this.emit('mousemove', event.data.originalEvent);
+        });
+        nodeLabelGfx.on('mouseover', function (event) {
+            return _this.emit('mouseover', event.data.originalEvent);
+        });
+        nodeLabelGfx.on('mouseout', function (event) {
+            return _this.emit('mouseout', event.data.originalEvent);
+        });
+        nodeLabelGfx.on('mousedown', function (event) {
+            return _this.emit('mousedown', event.data.originalEvent);
+        });
+        nodeLabelGfx.on('mouseup', function (event) {
+            return _this.emit('mouseup', event.data.originalEvent);
+        });
         createNodeLabel(nodeLabelGfx);
         return nodeLabelGfx;
     };
@@ -356,16 +384,25 @@ var PixiEdge = /** @class */ (function (_super) {
         var edgeGfx = new Container();
         edgeGfx.interactive = true;
         edgeGfx.buttonMode = true;
-        edgeGfx.on('mousemove', function (event) { return _this.emit('mousemove', event.data.originalEvent); });
-        edgeGfx.on('mouseover', function (event) { return _this.emit('mouseover', event.data.originalEvent); });
+        edgeGfx.on('mousemove', function (event) {
+            return _this.emit('mousemove', event.data.originalEvent);
+        });
+        edgeGfx.on('mouseover', function (event) {
+            return _this.emit('mouseover', event.data.originalEvent);
+        });
         edgeGfx.on('mouseout', function (event) { return _this.emit('mouseout', event.data.originalEvent); });
-        edgeGfx.on('mousedown', function (event) { return _this.emit('mousedown', event.data.originalEvent); });
+        edgeGfx.on('mousedown', function (event) {
+            return _this.emit('mousedown', event.data.originalEvent);
+        });
         edgeGfx.on('mouseup', function (event) { return _this.emit('mouseup', event.data.originalEvent); });
         createEdge(edgeGfx);
         return edgeGfx;
     };
     PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition) {
-        var position = { x: (sourceNodePosition.x + targetNodePosition.x) / 2, y: (sourceNodePosition.y + targetNodePosition.y) / 2 };
+        var position = {
+            x: (sourceNodePosition.x + targetNodePosition.x) / 2,
+            y: (sourceNodePosition.y + targetNodePosition.y) / 2,
+        };
         var rotation = -Math.atan2(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
         var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
         this.edgeGfx.position.copyFrom(position);
@@ -384,36 +421,36 @@ var PixiEdge = /** @class */ (function (_super) {
 Application.registerPlugin(TickerPlugin);
 Application.registerPlugin(AppLoaderPlugin);
 Loader.registerPlugin(BitmapFontLoader);
-Renderer.registerPlugin("batch", BatchRenderer);
-Renderer.registerPlugin("interaction", InteractionManager);
+Renderer.registerPlugin('batch', BatchRenderer);
+Renderer.registerPlugin('interaction', InteractionManager);
 var DEFAULT_STYLE = {
     node: {
         size: 15,
-        color: "#000000",
+        color: '#000000',
         border: {
             width: 2,
-            color: "#ffffff",
+            color: '#ffffff',
         },
         icon: {
             type: TextType.TEXT,
-            fontFamily: "Arial",
+            fontFamily: 'Arial',
             fontSize: 20,
-            color: "#ffffff",
-            content: "",
+            color: '#ffffff',
+            content: '',
         },
         label: {
             type: TextType.TEXT,
-            fontFamily: "Arial",
+            fontFamily: 'Arial',
             fontSize: 12,
-            content: "",
-            color: "#333333",
-            backgroundColor: "rgba(0, 0, 0, 0)",
+            content: '',
+            color: '#333333',
+            backgroundColor: 'rgba(0, 0, 0, 0)',
             padding: 4,
         },
     },
     edge: {
         width: 1,
-        color: "#cccccc",
+        color: '#cccccc',
     },
 };
 var WORLD_PADDING = 100;
@@ -443,7 +480,7 @@ var PixiGraph = /** @class */ (function (_super) {
         _this.hoverStyle = options.hoverStyle;
         _this.resources = options.resources;
         if (!(_this.container instanceof HTMLElement)) {
-            throw new Error("container should be a HTMLElement");
+            throw new Error('container should be a HTMLElement');
         }
         settings.LINE_SCALE_MODE = LINE_SCALE_MODE.NORMAL;
         // create PIXI application
@@ -456,7 +493,7 @@ var PixiGraph = /** @class */ (function (_super) {
         });
         _this.container.appendChild(_this.app.view);
         _this.app.renderer.plugins.interaction.moveWhenInside = true;
-        _this.app.view.addEventListener("wheel", function (event) {
+        _this.app.view.addEventListener('wheel', function (event) {
             event.preventDefault();
         });
         _this.textureCache = new TextureCache(_this.app.renderer);
@@ -470,7 +507,7 @@ var PixiGraph = /** @class */ (function (_super) {
             .pinch()
             .wheel()
             .decelerate()
-            .clampZoom({ maxScale: 5 });
+            .clampZoom({ maxScale: 2 });
         _this.app.stage.addChild(_this.viewport);
         // create layers
         _this.edgeLayer = new Container();
@@ -495,7 +532,7 @@ var PixiGraph = /** @class */ (function (_super) {
             _this.app.loader.add(_this.resources);
         }
         _this.app.loader.load(function () {
-            _this.viewport.on("frame-end", function () {
+            _this.viewport.on('frame-end', function () {
                 if (_this.viewport.dirty) {
                     _this.updateGraphVisibility();
                     _this.viewport.dirty = false;
@@ -503,16 +540,16 @@ var PixiGraph = /** @class */ (function (_super) {
             });
             _this.resizeObserver.observe(_this.container);
             // listen to graph changes
-            _this.graph.on("nodeAdded", _this.onGraphNodeAddedBound);
-            _this.graph.on("edgeAdded", _this.onGraphEdgeAddedBound);
-            _this.graph.on("nodeDropped", _this.onGraphNodeDroppedBound);
-            _this.graph.on("edgeDropped", _this.onGraphEdgeDroppedBound);
-            _this.graph.on("cleared", _this.onGraphClearedBound);
-            _this.graph.on("edgesCleared", _this.onGraphEdgesClearedBound);
-            _this.graph.on("nodeAttributesUpdated", _this.onGraphNodeAttributesUpdatedBound);
-            _this.graph.on("edgeAttributesUpdated", _this.onGraphEdgeAttributesUpdatedBound);
-            _this.graph.on("eachNodeAttributesUpdated", _this.onGraphEachNodeAttributesUpdatedBound);
-            _this.graph.on("eachEdgeAttributesUpdated", _this.onGraphEachEdgeAttributesUpdatedBound);
+            _this.graph.on('nodeAdded', _this.onGraphNodeAddedBound);
+            _this.graph.on('edgeAdded', _this.onGraphEdgeAddedBound);
+            _this.graph.on('nodeDropped', _this.onGraphNodeDroppedBound);
+            _this.graph.on('edgeDropped', _this.onGraphEdgeDroppedBound);
+            _this.graph.on('cleared', _this.onGraphClearedBound);
+            _this.graph.on('edgesCleared', _this.onGraphEdgesClearedBound);
+            _this.graph.on('nodeAttributesUpdated', _this.onGraphNodeAttributesUpdatedBound);
+            _this.graph.on('edgeAttributesUpdated', _this.onGraphEdgeAttributesUpdatedBound);
+            _this.graph.on('eachNodeAttributesUpdated', _this.onGraphEachNodeAttributesUpdatedBound);
+            _this.graph.on('eachEdgeAttributesUpdated', _this.onGraphEachEdgeAttributesUpdatedBound);
             // initial draw
             _this.createGraph();
             _this.resetView();
@@ -520,16 +557,16 @@ var PixiGraph = /** @class */ (function (_super) {
         return _this;
     }
     PixiGraph.prototype.destroy = function () {
-        this.graph.off("nodeAdded", this.onGraphNodeAddedBound);
-        this.graph.off("edgeAdded", this.onGraphEdgeAddedBound);
-        this.graph.off("nodeDropped", this.onGraphNodeDroppedBound);
-        this.graph.off("edgeDropped", this.onGraphEdgeDroppedBound);
-        this.graph.off("cleared", this.onGraphClearedBound);
-        this.graph.off("edgesCleared", this.onGraphEdgesClearedBound);
-        this.graph.off("nodeAttributesUpdated", this.onGraphNodeAttributesUpdatedBound);
-        this.graph.off("edgeAttributesUpdated", this.onGraphEdgeAttributesUpdatedBound);
-        this.graph.off("eachNodeAttributesUpdated", this.onGraphEachNodeAttributesUpdatedBound);
-        this.graph.off("eachEdgeAttributesUpdated", this.onGraphEachEdgeAttributesUpdatedBound);
+        this.graph.off('nodeAdded', this.onGraphNodeAddedBound);
+        this.graph.off('edgeAdded', this.onGraphEdgeAddedBound);
+        this.graph.off('nodeDropped', this.onGraphNodeDroppedBound);
+        this.graph.off('edgeDropped', this.onGraphEdgeDroppedBound);
+        this.graph.off('cleared', this.onGraphClearedBound);
+        this.graph.off('edgesCleared', this.onGraphEdgesClearedBound);
+        this.graph.off('nodeAttributesUpdated', this.onGraphNodeAttributesUpdatedBound);
+        this.graph.off('edgeAttributesUpdated', this.onGraphEdgeAttributesUpdatedBound);
+        this.graph.off('eachNodeAttributesUpdated', this.onGraphEachNodeAttributesUpdatedBound);
+        this.graph.off('eachEdgeAttributesUpdated', this.onGraphEachEdgeAttributesUpdatedBound);
         this.resizeObserver.disconnect();
         this.resizeObserver = undefined;
         this.textureCache.destroy();
@@ -552,8 +589,8 @@ var PixiGraph = /** @class */ (function (_super) {
     };
     PixiGraph.prototype.resetView = function () {
         var _this = this;
-        var nodesX = this.graph.nodes().map(function (nodeKey) { return _this.graph.getNodeAttribute(nodeKey, "x"); });
-        var nodesY = this.graph.nodes().map(function (nodeKey) { return _this.graph.getNodeAttribute(nodeKey, "y"); });
+        var nodesX = this.graph.nodes().map(function (nodeKey) { return _this.graph.getNodeAttribute(nodeKey, 'x'); });
+        var nodesY = this.graph.nodes().map(function (nodeKey) { return _this.graph.getNodeAttribute(nodeKey, 'y'); });
         var minX = Math.min.apply(Math, nodesX);
         var maxX = Math.max.apply(Math, nodesX);
         var minY = Math.min.apply(Math, nodesY);
@@ -682,16 +719,16 @@ var PixiGraph = /** @class */ (function (_super) {
         this.frontEdgeLayer.addChild(edge.edgePlaceholderGfx);
     };
     PixiGraph.prototype.moveNode = function (nodeKey, point) {
-        this.graph.setNodeAttribute(nodeKey, "x", point.x);
-        this.graph.setNodeAttribute(nodeKey, "y", point.y);
+        this.graph.setNodeAttribute(nodeKey, 'x', point.x);
+        this.graph.setNodeAttribute(nodeKey, 'y', point.y);
         // update style
         this.updateNodeStyleByKey(nodeKey);
         this.graph.edges(nodeKey).forEach(this.updateEdgeStyleByKey.bind(this));
     };
     PixiGraph.prototype.enableNodeDragging = function () {
         this.viewport.pause = true; // disable viewport dragging
-        document.addEventListener("mousemove", this.onDocumentMouseMoveBound);
-        document.addEventListener("mouseup", this.onDocumentMouseUpBound, { once: true });
+        document.addEventListener('mousemove', this.onDocumentMouseMoveBound);
+        document.addEventListener('mouseup', this.onDocumentMouseUpBound, { once: true });
     };
     PixiGraph.prototype.onDocumentMouseMove = function (event) {
         var eventPosition = new Point(event.offsetX, event.offsetY);
@@ -702,7 +739,7 @@ var PixiGraph = /** @class */ (function (_super) {
     };
     PixiGraph.prototype.onDocumentMouseUp = function () {
         this.viewport.pause = false; // enable viewport dragging
-        document.removeEventListener("mousemove", this.onDocumentMouseMoveBound);
+        document.removeEventListener('mousemove', this.onDocumentMouseMoveBound);
         this.mousedownNodeKey = null;
         this.mousedownEdgeKey = null;
     };
@@ -713,31 +750,31 @@ var PixiGraph = /** @class */ (function (_super) {
     PixiGraph.prototype.createNode = function (nodeKey, nodeAttributes) {
         var _this = this;
         var node = new PixiNode();
-        node.on("mousemove", function (event) {
-            _this.emit("nodeMousemove", event, nodeKey);
+        node.on('mousemove', function (event) {
+            _this.emit('nodeMousemove', event, nodeKey);
         });
-        node.on("mouseover", function (event) {
+        node.on('mouseover', function (event) {
             if (!_this.mousedownNodeKey) {
                 _this.hoverNode(nodeKey);
             }
-            _this.emit("nodeMouseover", event, nodeKey);
+            _this.emit('nodeMouseover', event, nodeKey);
         });
-        node.on("mouseout", function (event) {
+        node.on('mouseout', function (event) {
             if (!_this.mousedownNodeKey) {
                 _this.unhoverNode(nodeKey);
             }
-            _this.emit("nodeMouseout", event, nodeKey);
+            _this.emit('nodeMouseout', event, nodeKey);
         });
-        node.on("mousedown", function (event) {
+        node.on('mousedown', function (event) {
             _this.mousedownNodeKey = nodeKey;
             _this.enableNodeDragging();
-            _this.emit("nodeMousedown", event, nodeKey);
+            _this.emit('nodeMousedown', event, nodeKey);
         });
-        node.on("mouseup", function (event) {
-            _this.emit("nodeMouseup", event, nodeKey);
+        node.on('mouseup', function (event) {
+            _this.emit('nodeMouseup', event, nodeKey);
             // why native click event doesn't work?
             if (_this.mousedownNodeKey === nodeKey) {
-                _this.emit("nodeClick", event, nodeKey);
+                _this.emit('nodeClick', event, nodeKey);
             }
         });
         this.nodeLayer.addChild(node.nodeGfx);
@@ -750,26 +787,26 @@ var PixiGraph = /** @class */ (function (_super) {
     PixiGraph.prototype.createEdge = function (edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes) {
         var _this = this;
         var edge = new PixiEdge();
-        edge.on("mousemove", function (event) {
-            _this.emit("edgeMousemove", event, edgeKey);
+        edge.on('mousemove', function (event) {
+            _this.emit('edgeMousemove', event, edgeKey);
         });
-        edge.on("mouseover", function (event) {
+        edge.on('mouseover', function (event) {
             _this.hoverEdge(edgeKey);
-            _this.emit("edgeMouseover", event, edgeKey);
+            _this.emit('edgeMouseover', event, edgeKey);
         });
-        edge.on("mouseout", function (event) {
+        edge.on('mouseout', function (event) {
             _this.unhoverEdge(edgeKey);
-            _this.emit("edgeMouseout", event, edgeKey);
+            _this.emit('edgeMouseout', event, edgeKey);
         });
-        edge.on("mousedown", function (event) {
+        edge.on('mousedown', function (event) {
             _this.mousedownEdgeKey = edgeKey;
-            _this.emit("edgeMousedown", event, edgeKey);
+            _this.emit('edgeMousedown', event, edgeKey);
         });
-        edge.on("mouseup", function (event) {
-            _this.emit("edgeMouseup", event, edgeKey);
+        edge.on('mouseup', function (event) {
+            _this.emit('edgeMouseup', event, edgeKey);
             // why native click event doesn't work?
             if (_this.mousedownEdgeKey === edgeKey) {
-                _this.emit("edgeClick", event, edgeKey);
+                _this.emit('edgeClick', event, edgeKey);
             }
         });
         this.edgeLayer.addChild(edge.edgeGfx);
@@ -799,11 +836,7 @@ var PixiGraph = /** @class */ (function (_super) {
         var node = this.nodeKeyToNodeObject.get(nodeKey);
         var nodePosition = { x: nodeAttributes.x, y: nodeAttributes.y };
         node.updatePosition(nodePosition);
-        var nodeStyleDefinitions = [
-            DEFAULT_STYLE.node,
-            this.style.node,
-            node.hovered ? this.hoverStyle.node : undefined,
-        ];
+        var nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node, node.hovered ? this.hoverStyle.node : undefined];
         var nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, nodeAttributes);
         node.updateStyle(nodeStyle, this.textureCache);
     };
@@ -822,11 +855,7 @@ var PixiGraph = /** @class */ (function (_super) {
         var sourceNodePosition = { x: sourceNodeAttributes.x, y: sourceNodeAttributes.y };
         var targetNodePosition = { x: targetNodeAttributes.x, y: targetNodeAttributes.y };
         edge.updatePosition(sourceNodePosition, targetNodePosition);
-        var edgeStyleDefinitions = [
-            DEFAULT_STYLE.edge,
-            this.style.edge,
-            edge.hovered ? this.hoverStyle.edge : undefined,
-        ];
+        var edgeStyleDefinitions = [DEFAULT_STYLE.edge, this.style.edge, edge.hovered ? this.hoverStyle.edge : undefined];
         var edgeStyle = resolveStyleDefinitions(edgeStyleDefinitions, edgeAttributes);
         edge.updateStyle(edgeStyle, this.textureCache);
     };

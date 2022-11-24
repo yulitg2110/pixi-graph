@@ -165,7 +165,7 @@ export class PixiGraph<
       .pinch()
       .wheel()
       .decelerate()
-      .clampZoom({ maxScale: 3 });
+      .clampZoom({ maxScale: 2 });
     this.app.stage.addChild(this.viewport);
 
     // create layers
