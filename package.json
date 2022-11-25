@@ -26,7 +26,7 @@
     "@pixi/constants": "^6.0.2",
     "@pixi/core": "^6.0.2",
     "@pixi/display": "^6.0.2",
-    "@pixi/graphics-smooth": "^0.0.13",
+    "@pixi/graphics-smooth": "^0.0.30",
     "@pixi/interaction": "^6.1.2",
     "@pixi/loaders": "^6.1.2",
     "@pixi/math": "^6.0.2",
