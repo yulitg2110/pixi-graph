@@ -80,7 +80,7 @@
         console.time('layout');
         forceAtlas2.assign(graph, {
           iterations: 300,
-          settings: { ...forceAtlas2.inferSettings(graph), scalingRatio: 80 },
+          settings: { ...forceAtlas2.inferSettings(graph), scalingRatio: 80, barnesHutOptimize: true },
         });
         console.timeEnd('layout');
         // const positions = await (await fetch('miserables-positions.json')).json();

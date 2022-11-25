@@ -616,7 +616,7 @@ export class PixiGraph<
   }
 
   private updateGraphVisibility() {
-    // culling, currently
+    // culling
     this.cull.cull(this.viewport.getVisibleBounds(), false);
 
     // original culling have performance issue.

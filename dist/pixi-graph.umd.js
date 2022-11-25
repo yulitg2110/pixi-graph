@@ -46141,10 +46141,7 @@ if (vType < 0.5) {
         PixiGraph.prototype.updateGraphVisibility = function () {
             var _this = this;
             // culling, currently
-            console.time('cull');
             this.cull.cull(this.viewport.getVisibleBounds(), false);
-            console.timeEnd('cull');
-            console.log(this.cull.stats());
             // original culling have performance issue.
             // const cull = new Cull();
             // cull.addAll((this.viewport.children as Container[]).map((layer) => layer.children).flat());
