@@ -75,17 +75,17 @@ export function updateNodeStyle(nodeGfx: Container, nodeStyle: NodeStyle, textur
   (nodeGfx.hitArea as Circle).radius = nodeOuterSize;
 
   // nodeGfx -> nodeCircle
-  const nodeCircle = nodeGfx.getChildByName!(NODE_CIRCLE) as Sprite;
+  const nodeCircle = nodeGfx.getChildByName!(NODE_CIRCLE) as unknown as Sprite;
   nodeCircle.texture = nodeCircleTexture;
   [nodeCircle.tint, nodeCircle.alpha] = colorToPixi(nodeStyle.color);
 
   // nodeGfx -> nodeCircleBorder
-  const nodeCircleBorder = nodeGfx.getChildByName!(NODE_CIRCLE_BORDER) as Sprite;
+  const nodeCircleBorder = nodeGfx.getChildByName!(NODE_CIRCLE_BORDER) as unknown as Sprite;
   nodeCircleBorder.texture = nodeCircleBorderTexture;
   [nodeCircleBorder.tint, nodeCircleBorder.alpha] = colorToPixi(nodeStyle.border.color);
 
   // nodeGfx -> nodeIcon
-  const nodeIcon = nodeGfx.getChildByName!(NODE_ICON) as Sprite;
+  const nodeIcon = nodeGfx.getChildByName!(NODE_ICON) as unknown as Sprite;
   nodeIcon.texture = nodeIconTexture;
   [nodeIcon.tint, nodeIcon.alpha] = colorToPixi(nodeStyle.icon.color);
   nodeGfx.addChild(nodeIcon);
@@ -93,10 +93,10 @@ export function updateNodeStyle(nodeGfx: Container, nodeStyle: NodeStyle, textur
 
 export function updateNodeVisibility(nodeGfx: Container, zoomStep: number) {
   // nodeGfx -> nodeCircleBorder
-  const nodeCircleBorder = nodeGfx.getChildByName!(NODE_CIRCLE_BORDER) as Sprite;
-  nodeCircleBorder.visible = nodeCircleBorder.visible && zoomStep >= 1;
+  const nodeCircleBorder = nodeGfx.getChildByName!(NODE_CIRCLE_BORDER) as unknown as Sprite;
+  nodeCircleBorder.visible = zoomStep >= 1;
 
   // nodeGfx -> nodeIcon
-  const nodeIcon = nodeGfx.getChildByName!(NODE_ICON) as Sprite;
-  nodeIcon.visible = nodeIcon.visible && zoomStep >= 2;
+  const nodeIcon = nodeGfx.getChildByName!(NODE_ICON) as unknown as Sprite;
+  nodeIcon.visible = zoomStep >= 2;
 }

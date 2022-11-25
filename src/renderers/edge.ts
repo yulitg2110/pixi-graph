@@ -18,13 +18,13 @@ export function createEdge(edgeGfx: Container) {
 
 export function updateEdgeStyle(edgeGfx: Container, edgeStyle: EdgeStyle, _textureCache: TextureCache) {
   // edgeGfx -> edgeLine
-  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
+  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as unknown as Sprite;
   edgeLine.width = edgeStyle.width;
   [edgeLine.tint, edgeLine.alpha] = colorToPixi(edgeStyle.color);
 }
 
 export function updateEdgeVisibility(edgeGfx: Container, zoomStep: number) {
   // edgeGfx -> edgeLine
-  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
-  edgeLine.visible = edgeLine.visible && zoomStep >= 1;
+  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as unknown as Sprite;
+  edgeLine.visible = zoomStep >= 1;
 }
