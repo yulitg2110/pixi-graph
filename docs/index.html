@@ -62,13 +62,14 @@
 
       window.addEventListener('DOMContentLoaded', async () => {
         const graph = new graphology.Graph();
-        const { nodes, links } = await (await fetch('miserables.json')).json();
+        // const { nodes, links } = await (await fetch('miserables.json')).json();
         // const { nodes, links } = await (await fetch('socfb-Caltech36.json')).json();
+        const { nodes, links } = await (await fetch('facebook.json')).json();
         nodes.forEach((node) => {
-          graph.addNode(node.id, node);
+          graph.addNode(`${node.id}`, node);
         });
         links.forEach((link) => {
-          graph.addEdge(link.source, link.target, link);
+          graph.addEdge(`${link.source}`, `${link.target}`, link);
         });
 
         // layout
@@ -76,18 +77,21 @@
           graph.setNodeAttribute(node, 'x', Math.random());
           graph.setNodeAttribute(node, 'y', Math.random());
         });
-        // forceAtlas2.assign(graph, { iterations: 300, settings: { ...forceAtlas2.inferSettings(graph), scalingRatio: 80 }});
-        const positions = await (await fetch('miserables-positions.json')).json();
-        graph.forEachNode((node) => {
-          const position = positions[node];
-          graph.setNodeAttribute(node, 'x', position.x);
-          graph.setNodeAttribute(node, 'y', position.y);
+        forceAtlas2.assign(graph, {
+          iterations: 300,
+          settings: { ...forceAtlas2.inferSettings(graph), scalingRatio: 80 },
         });
+        // const positions = await (await fetch('miserables-positions.json')).json();
+        // graph.forEachNode((node) => {
+        //   const position = positions[node];
+        //   graph.setNodeAttribute(node, 'x', position.x);
+        //   graph.setNodeAttribute(node, 'y', position.y);
+        // });
 
         const style = {
           node: {
             size: 15,
-            color: (node) => colors[(node.group || 0) % colors.length],
+            color: (node) => colors[(node.group || Number(node.id) || 0) % colors.length],
             border: {
               width: 2,
               color: '#ffffff',
@@ -99,7 +103,7 @@
               color: '#ffffff',
             },
             label: {
-              content: (node) => node.id,
+              content: (node) => `${node.id}`,
               type: PixiGraph.TextType.BITMAP_TEXT,
               fontFamily: 'HelveticaRegular',
               fontSize: 12,
