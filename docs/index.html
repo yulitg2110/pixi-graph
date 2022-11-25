@@ -77,10 +77,12 @@
           graph.setNodeAttribute(node, 'x', Math.random());
           graph.setNodeAttribute(node, 'y', Math.random());
         });
+        console.time('layout');
         forceAtlas2.assign(graph, {
           iterations: 300,
           settings: { ...forceAtlas2.inferSettings(graph), scalingRatio: 80 },
         });
+        console.timeEnd('layout');
         // const positions = await (await fetch('miserables-positions.json')).json();
         // graph.forEachNode((node) => {
         //   const position = positions[node];
@@ -90,7 +92,7 @@
 
         const style = {
           node: {
-            size: 15,
+            size: 30,
             color: (node) => colors[(node.group || Number(node.id) || 0) % colors.length],
             border: {
               width: 2,

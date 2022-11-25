@@ -1825,10 +1825,10 @@
 
             // minX, minY and invSize are later used to transform coords into integers for z-order calculation
             invSize = Math.max(maxX - minX, maxY - minY);
-            invSize = invSize !== 0 ? 1 / invSize : 0;
+            invSize = invSize !== 0 ? 32767 / invSize : 0;
         }
 
-        earcutLinked(outerNode, triangles, dim, minX, minY, invSize);
+        earcutLinked(outerNode, triangles, dim, minX, minY, invSize, 0);
 
         return triangles;
     }
@@ -1892,9 +1892,9 @@
 
             if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
                 // cut off the triangle
-                triangles.push(prev.i / dim);
-                triangles.push(ear.i / dim);
-                triangles.push(next.i / dim);
+                triangles.push(prev.i / dim | 0);
+                triangles.push(ear.i / dim | 0);
+                triangles.push(next.i / dim | 0);
 
                 removeNode(ear);
 
@@ -1937,10 +1937,18 @@
         if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
 
         // now make sure we don't have other points inside the potential ear
-        var p = ear.next.next;
+        var ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
-        while (p !== ear.prev) {
-            if (pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
+        // triangle bbox; min & max are calculated like this for speed
+        var x0 = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
+            y0 = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
+            x1 = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
+            y1 = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy);
+
+        var p = c.next;
+        while (p !== a) {
+            if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) &&
                 area(p.prev, p, p.next) >= 0) return false;
             p = p.next;
         }
@@ -1955,45 +1963,43 @@
 
         if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
 
+        var ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
+
         // triangle bbox; min & max are calculated like this for speed
-        var minTX = a.x < b.x ? (a.x < c.x ? a.x : c.x) : (b.x < c.x ? b.x : c.x),
-            minTY = a.y < b.y ? (a.y < c.y ? a.y : c.y) : (b.y < c.y ? b.y : c.y),
-            maxTX = a.x > b.x ? (a.x > c.x ? a.x : c.x) : (b.x > c.x ? b.x : c.x),
-            maxTY = a.y > b.y ? (a.y > c.y ? a.y : c.y) : (b.y > c.y ? b.y : c.y);
+        var x0 = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
+            y0 = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
+            x1 = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
+            y1 = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy);
 
         // z-order range for the current triangle bbox;
-        var minZ = zOrder(minTX, minTY, minX, minY, invSize),
-            maxZ = zOrder(maxTX, maxTY, minX, minY, invSize);
+        var minZ = zOrder(x0, y0, minX, minY, invSize),
+            maxZ = zOrder(x1, y1, minX, minY, invSize);
 
         var p = ear.prevZ,
             n = ear.nextZ;
 
         // look for points inside the triangle in both directions
         while (p && p.z >= minZ && n && n.z <= maxZ) {
-            if (p !== ear.prev && p !== ear.next &&
-                pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
-                area(p.prev, p, p.next) >= 0) return false;
+            if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
             p = p.prevZ;
 
-            if (n !== ear.prev && n !== ear.next &&
-                pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, n.x, n.y) &&
-                area(n.prev, n, n.next) >= 0) return false;
+            if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
             n = n.nextZ;
         }
 
         // look for remaining points in decreasing z-order
         while (p && p.z >= minZ) {
-            if (p !== ear.prev && p !== ear.next &&
-                pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
-                area(p.prev, p, p.next) >= 0) return false;
+            if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
             p = p.prevZ;
         }
 
         // look for remaining points in increasing z-order
         while (n && n.z <= maxZ) {
-            if (n !== ear.prev && n !== ear.next &&
-                pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, n.x, n.y) &&
-                area(n.prev, n, n.next) >= 0) return false;
+            if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
             n = n.nextZ;
         }
 
@@ -2009,9 +2015,9 @@
 
             if (!equals(a, b) && intersects(a, p, p.next, b) && locallyInside(a, b) && locallyInside(b, a)) {
 
-                triangles.push(a.i / dim);
-                triangles.push(p.i / dim);
-                triangles.push(b.i / dim);
+                triangles.push(a.i / dim | 0);
+                triangles.push(p.i / dim | 0);
+                triangles.push(b.i / dim | 0);
 
                 // remove two nodes involved
                 removeNode(p);
@@ -2041,8 +2047,8 @@
                     c = filterPoints(c, c.next);
 
                     // run earcut on each half
-                    earcutLinked(a, triangles, dim, minX, minY, invSize);
-                    earcutLinked(c, triangles, dim, minX, minY, invSize);
+                    earcutLinked(a, triangles, dim, minX, minY, invSize, 0);
+                    earcutLinked(c, triangles, dim, minX, minY, invSize, 0);
                     return;
                 }
                 b = b.next;
@@ -2068,8 +2074,7 @@
 
         // process holes from left to right
         for (i = 0; i < queue.length; i++) {
-            eliminateHole(queue[i], outerNode);
-            outerNode = filterPoints(outerNode, outerNode.next);
+            outerNode = eliminateHole(queue[i], outerNode);
         }
 
         return outerNode;
@@ -2081,14 +2086,16 @@
 
     // find a bridge between vertices that connects hole with an outer ring and and link it
     function eliminateHole(hole, outerNode) {
-        outerNode = findHoleBridge(hole, outerNode);
-        if (outerNode) {
-            var b = splitPolygon(outerNode, hole);
-
-            // filter collinear points around the cuts
-            filterPoints(outerNode, outerNode.next);
-            filterPoints(b, b.next);
+        var bridge = findHoleBridge(hole, outerNode);
+        if (!bridge) {
+            return outerNode;
         }
+
+        var bridgeReverse = splitPolygon(bridge, hole);
+
+        // filter collinear points around the cuts
+        filterPoints(bridgeReverse, bridgeReverse.next);
+        return filterPoints(bridge, bridge.next);
     }
 
     // David Eberly's algorithm for finding a bridge between hole and outer polygon
@@ -2106,19 +2113,14 @@
                 var x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
                 if (x <= hx && x > qx) {
                     qx = x;
-                    if (x === hx) {
-                        if (hy === p.y) return p;
-                        if (hy === p.next.y) return p.next;
-                    }
                     m = p.x < p.next.x ? p : p.next;
+                    if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
                 }
             }
             p = p.next;
         } while (p !== outerNode);
 
         if (!m) return null;
-
-        if (hx === qx) return m; // hole touches outer segment; pick leftmost endpoint
 
         // look for points inside the triangle of hole point, segment intersection and endpoint;
         // if there are no points found, we have a valid connection;
@@ -2160,7 +2162,7 @@
     function indexCurve(start, minX, minY, invSize) {
         var p = start;
         do {
-            if (p.z === null) p.z = zOrder(p.x, p.y, minX, minY, invSize);
+            if (p.z === 0) p.z = zOrder(p.x, p.y, minX, minY, invSize);
             p.prevZ = p.prev;
             p.nextZ = p.next;
             p = p.next;
@@ -2228,8 +2230,8 @@
     // z-order of a point given coords and inverse of the longer side of data bbox
     function zOrder(x, y, minX, minY, invSize) {
         // coords are transformed into non-negative 15-bit integer range
-        x = 32767 * (x - minX) * invSize;
-        y = 32767 * (y - minY) * invSize;
+        x = (x - minX) * invSize | 0;
+        y = (y - minY) * invSize | 0;
 
         x = (x | (x << 8)) & 0x00FF00FF;
         x = (x | (x << 4)) & 0x0F0F0F0F;
@@ -2258,9 +2260,9 @@
 
     // check if a point lies within a convex triangle
     function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
-        return (cx - px) * (ay - py) - (ax - px) * (cy - py) >= 0 &&
-               (ax - px) * (by - py) - (bx - px) * (ay - py) >= 0 &&
-               (bx - px) * (cy - py) - (cx - px) * (by - py) >= 0;
+        return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
+               (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
+               (bx - px) * (cy - py) >= (cx - px) * (by - py);
     }
 
     // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
@@ -2403,7 +2405,7 @@
         this.next = null;
 
         // z-order curve value
-        this.z = null;
+        this.z = 0;
 
         // previous and next nodes in z-order
         this.prevZ = null;
@@ -7768,8 +7770,8 @@
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     }
 
-    var __assign = function() {
-        __assign = Object.assign || function __assign(t) {
+    var __assign$1 = function() {
+        __assign$1 = Object.assign || function __assign(t) {
             var arguments$1 = arguments;
 
             for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -7778,7 +7780,7 @@
             }
             return t;
         };
-        return __assign.apply(this, arguments);
+        return __assign$1.apply(this, arguments);
     };
 
     function __rest(s, e) {
@@ -16053,7 +16055,7 @@
     }());
 
     // Temporary rectangle for assigned sourceFrame or destinationFrame
-    var tempRect$1 = new Rectangle();
+    var tempRect = new Rectangle();
     // Temporary rectangle for renderTexture destinationFrame
     var tempRect2 = new Rectangle();
     /* eslint-disable max-len */
@@ -16148,9 +16150,9 @@
                 baseTexture = renderTexture.baseTexture;
                 resolution = baseTexture.resolution;
                 if (!sourceFrame) {
-                    tempRect$1.width = renderTexture.frame.width;
-                    tempRect$1.height = renderTexture.frame.height;
-                    sourceFrame = tempRect$1;
+                    tempRect.width = renderTexture.frame.width;
+                    tempRect.height = renderTexture.frame.height;
+                    sourceFrame = tempRect;
                 }
                 if (!destinationFrame) {
                     tempRect2.x = renderTexture.frame.x;
@@ -16164,12 +16166,12 @@
             else {
                 resolution = renderer.resolution;
                 if (!sourceFrame) {
-                    tempRect$1.width = renderer.screen.width;
-                    tempRect$1.height = renderer.screen.height;
-                    sourceFrame = tempRect$1;
+                    tempRect.width = renderer.screen.width;
+                    tempRect.height = renderer.screen.height;
+                    sourceFrame = tempRect;
                 }
                 if (!destinationFrame) {
-                    destinationFrame = tempRect$1;
+                    destinationFrame = tempRect;
                     destinationFrame.width = sourceFrame.width;
                     destinationFrame.height = sourceFrame.height;
                 }
@@ -17966,7 +17968,7 @@
                 { region.width = 1; }
             if (region.height === 0)
                 { region.height = 1; }
-            var renderTexture = RenderTexture.create(__assign({ width: region.width, height: region.height }, textureOptions));
+            var renderTexture = RenderTexture.create(__assign$1({ width: region.width, height: region.height }, textureOptions));
             tempMatrix$1.tx = -region.x;
             tempMatrix$1.ty = -region.y;
             this.render(displayObject, {
@@ -36840,250 +36842,245 @@
         }
     }
 
-    /* eslint-disable */
+    /*! *****************************************************************************
+    Copyright (c) Microsoft Corporation.
 
-    const tempRect = new Rectangle();
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted.
 
-    /**
-     * The culling options for {@code Cull}.
-     *
-     * @ignore
-     * @public
-     */
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+    REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+    AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+    INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+    LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+    OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+    PERFORMANCE OF THIS SOFTWARE.
+    ***************************************************************************** */
 
-
-
-
-
-
-    /**
-     * Provides a simple, configurable mechanism for culling a subtree of your scene graph.
-     *
-     * If your scene graph is not static, culling needs to be done before rendering. You
-     * can run it on the `prerender` event fired by the renderer.
-     *
-     * @public
-     */
-    class Cull
-    {
-        
-        
-        
-
-        /**
-         * @param options
-         * @param [options.recursive] - whether culling should be recursive
-         * @param [options.toggle='renderable'] - which property of display-object was be set to indicate
-         *      its culling state. It should be one of `renderable`, `visible`.
-         */
-        constructor(options = {})
-        {
-            this._recursive = typeof options.recursive === 'boolean' ? options.recursive : true;
-            this._toggle = options.toggle || 'visible';
-            this._targetList = new Set();
-        }
-
-        /**
-         * Adds a display-object to the culling list
-         *
-         * @param target - the display-object to be culled
-         * @return this
-         */
-        add(target)
-        {
-            this._targetList.add(target);
-
-            return this;
-        }
-
-        /**
-         * Adds all the display-objects to the culling list
-         *
-         * @param targets - the display-objects to be culled
-         * @return this
-         */
-        addAll(targets)
-        {
-            for (let i = 0, j = targets.length; i < j; i++)
-            {
-                this._targetList.add(targets[i]);
+    var __assign = function() {
+        __assign = Object.assign || function __assign(t) {
+            for (var s, i = 1, n = arguments.length; i < n; i++) {
+                s = arguments[i];
+                for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
             }
+            return t;
+        };
+        return __assign.apply(this, arguments);
+    };
 
-            return this;
-        }
-
+    var defaultSimpleOptions = {
+        visible: 'visible',
+        dirtyTest: false
+    };
+    var Simple = /** @class */ (function () {
         /**
-         * Removes the display-object from the culling list
+         * Creates a simple cull
+         * Note, options.dirtyTest defaults to false. Set to true for much better performance--this requires
+         * additional work to ensure displayObject.dirty is set when objects change)
          *
-         * @param target - the display-object to be removed
-         * @return this
+         * @param {object} [options]
+         * @param {string} [options.dirtyTest=false] - only update the AABB box for objects with object[options.dirtyTest]=true; this has a HUGE impact on performance
          */
-        remove(target)
-        {
-            this._targetList.delete(target);
-
-            return this;
+        function Simple(options) {
+            if (options === void 0) { options = {}; }
+            options = __assign(__assign({}, defaultSimpleOptions), options);
+            this.dirtyTest = typeof options.dirtyTest !== 'undefined' ? options.dirtyTest : true;
+            this.lists = [[]];
         }
-
         /**
-         * Removes all the passed display-objects from the culling list
-         *
-         * @param targets - the display-objects to be removed
-         * @return this
+         * add an array of objects to be culled, eg: `simple.addList(container.children)`
+         * @param {Array} array
+         * @param {boolean} [staticObject] - set to true if the object's position/size does not change
+         * @return {Array} array
          */
-        removeAll(targets)
-        {
-            for (let i = 0, j = targets.length; i < j; i++)
-            {
-                this._targetList.delete(targets[i]);
+        Simple.prototype.addList = function (array, staticObject) {
+            this.lists.push(array);
+            if (staticObject) {
+                array.staticObject = true;
             }
-
-            return this;
-        }
-
-        /**
-         * Clears the culling list
-         *
-         * @return this
-         */
-        clear()
-        {
-            this._targetList.clear();
-
-            return this;
-        }
-
-        /**
-         * @param rect - the rectangle outside of which display-objects should be culled
-         * @param skipUpdate - whether to skip unculling, transform update, bounds calculation. It is
-         *  highly recommended you enable this by calling _this.uncull()_ and _root.getBounds(false)_ manually
-         *  before your render loop.
-         * @return this
-         */
-        cull(rect, skipUpdate = false)
-        {
-            if (!skipUpdate)
-            {
-                this.uncull();
+            var length = array.length;
+            for (var i = 0; i < length; i++) {
+                this.updateObject(array[i]);
             }
-
-            this._targetList.forEach((target) =>
-            {
-                if (!skipUpdate)
-                {
-                    // Update transforms, bounds of display-objects in this target's subtree
-                    target.getBounds(false, tempRect);
+            return array;
+        };
+        /**
+         * remove an array added by addList()
+         * @param {Array} array
+         * @return {Array} array
+         */
+        Simple.prototype.removeList = function (array) {
+            var index = this.lists.indexOf(array);
+            if (index === -1) {
+                return array;
+            }
+            this.lists.splice(index, 1);
+            return array;
+        };
+        /**
+         * add an object to be culled
+         * NOTE: for implementation, add and remove uses this.lists[0]
+         *
+         * @param {DisplayObjectWithCulling} object
+         * @param {boolean} [staticObject] - set to true if the object's position/size does not change
+         * @return {DisplayObjectWithCulling} object
+         */
+        Simple.prototype.add = function (object, staticObject) {
+            if (staticObject) {
+                object.staticObject = true;
+            }
+            if (this.dirtyTest || staticObject) {
+                this.updateObject(object);
+            }
+            this.lists[0].push(object);
+            return object;
+        };
+        /**
+         * remove an object added by add()
+         * NOTE: for implementation, add and remove uses this.lists[0]
+         *
+         * @param {DisplayObjectWithCulling} object
+         * @return {DisplayObjectWithCulling} object
+         */
+        Simple.prototype.remove = function (object) {
+            var index = this.lists[0].indexOf(object);
+            if (index === -1) {
+                return object;
+            }
+            this.lists[0].splice(index, 1);
+            return object;
+        };
+        /**
+         * cull the items in the list by changing the object.visible
+         * @param {AABB} bounds
+         * @param {boolean} [skipUpdate] - skip updating the AABB bounding box of all objects
+         */
+        Simple.prototype.cull = function (bounds, skipUpdate) {
+            if (!skipUpdate) {
+                this.updateObjects();
+            }
+            for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
+                var list = _a[_i];
+                var length_1 = list.length;
+                for (var i = 0; i < length_1; i++) {
+                    var object = list[i];
+                    var box = object.AABB;
+                    object.visible =
+                        box.x + box.width > bounds.x && box.x < bounds.x + bounds.width &&
+                            box.y + box.height > bounds.y && box.y < bounds.y + bounds.height;
                 }
-
-                if (this._recursive)
-                {
-                    this.cullRecursive(rect, target, skipUpdate);
-                }
-                else
-                {
-                    // NOTE: If skipUpdate is false, then tempRect already contains the bounds of the target
-                    if (skipUpdate)
-                    {
-                        target._bounds.getRectangle(rect);
+            }
+        };
+        /**
+         * update the AABB for all objects
+         * automatically called from update() when calculatePIXI=true and skipUpdate=false
+         */
+        Simple.prototype.updateObjects = function () {
+            if (this.dirtyTest) {
+                for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
+                    var list = _a[_i];
+                    if (!list.staticObject) {
+                        var length_2 = list.length;
+                        for (var i = 0; i < length_2; i++) {
+                            var object = list[i];
+                            if (!object.staticObject && object.dirty) {
+                                this.updateObject(object);
+                                object.dirty = false;
+                            }
+                        }
                     }
-
-                    target[this._toggle] = tempRect.right > rect.left
-                        && tempRect.left < rect.right
-                        && tempRect.bottom > rect.top
-                        && tempRect.top < rect.bottom;
-                }
-            });
-
-            return this;
-        }
-
-        /**
-         * Sets all display-objects to the unculled state.
-         *
-         * This happens regardless of whether the culling toggle was set by {@code this.cull} or manually. This
-         * is why it is recommended to one of `visible` or `renderable` for normal use and the other for culling.
-         *
-         * @return this
-         */
-        uncull()
-        {
-            this._targetList.forEach((target) =>
-            {
-                if (this._recursive)
-                {
-                    this.uncullRecursive(target);
-                }
-                else
-                {
-                    target[this._toggle] = false;
-                }
-            });
-
-            return this;
-        }
-
-        /**
-         * Recursively culls the subtree of {@code displayObject}.
-         *
-         * @param rect - the visiblity rectangle
-         * @param displayObject - the root of the subtree to cull
-         * @param skipUpdate - whether to skip bounds calculation. However, transforms are expected to be updated by the caller.
-         */
-         cullRecursive(rect, displayObject, skipUpdate)
-        {
-            // NOTE: getBounds can skipUpdate because updateTransform is invoked before culling.
-            const bounds = skipUpdate
-                ? displayObject._bounds.getRectangle(tempRect)
-                : displayObject.getBounds(true, tempRect);
-
-            displayObject[this._toggle] = bounds.right > rect.left
-                && bounds.left < rect.right
-                && bounds.bottom > rect.top
-                && bounds.top < rect.bottom;
-
-            const fullyVisible = bounds.left >= rect.left
-                && bounds.top >= rect.top
-                && bounds.right <= rect.right
-                && bounds.bottom <= rect.bottom;
-
-            // Only cull children if this display-object is *not* fully-visible. It is expected that the bounds
-            // of children lie inside of its own. Hence, further culling is only required if the display-object
-            // intersects with the boundaries of "rect". Otherwise, if the object is fully outside/inside the
-            // screen, the children don't need to be evaluated as they are presumed to be unculled.
-            if (!fullyVisible
-                    && displayObject[this._toggle]
-                    && (displayObject ).children
-                    && (displayObject ).children.length)
-            {
-                const children = (displayObject ).children;
-
-                for (let i = 0, j = children.length; i < j; i++)
-                {
-                    this.cullRecursive(rect, children[i]);
                 }
             }
-        }
-
-        /**
-         * Recursively unculls the subtree of {@code displayObject}.
-         *
-         * @param displayObject
-         */
-         uncullRecursive(displayObject)
-        {
-            displayObject[this._toggle] = true;
-
-            if ((displayObject ).children && (displayObject ).children.length)
-            {
-                const children = (displayObject ).children;
-
-                for (let i = 0, j = children.length; i < j; i++)
-                {
-                    this.uncullRecursive(children[i]);
+            else {
+                for (var _b = 0, _c = this.lists; _b < _c.length; _b++) {
+                    var list = _c[_b];
+                    if (!list.staticObject) {
+                        var length_3 = list.length;
+                        for (var i = 0; i < length_3; i++) {
+                            var object = list[i];
+                            if (!object.staticObject) {
+                                this.updateObject(object);
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
+        };
+        /**
+         * update the has of an object
+         * automatically called from updateObjects()
+         * @param {DisplayObjectWithCulling} object
+         */
+        Simple.prototype.updateObject = function (object) {
+            var box = object.getLocalBounds();
+            object.AABB = object.AABB || { x: 0, y: 0, width: 0, height: 0 };
+            object.AABB.x = object.x + (box.x - object.pivot.x) * Math.abs(object.scale.x);
+            object.AABB.y = object.y + (box.y - object.pivot.y) * Math.abs(object.scale.y);
+            object.AABB.width = box.width * Math.abs(object.scale.x);
+            object.AABB.height = box.height * Math.abs(object.scale.y);
+        };
+        /**
+         * returns an array of objects contained within bounding box
+         * @param {AABB} bounds - bounding box to search
+         * @return {DisplayObjectWithCulling[]} - search results
+         */
+        Simple.prototype.query = function (bounds) {
+            var results = [];
+            for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
+                var list = _a[_i];
+                for (var _b = 0, list_1 = list; _b < list_1.length; _b++) {
+                    var object = list_1[_b];
+                    var box = object.AABB;
+                    if (box &&
+                        box.x + box.width > bounds.x && box.x - box.width < bounds.x + bounds.width &&
+                        box.y + box.height > bounds.y && box.y - box.height < bounds.y + bounds.height) {
+                        results.push(object);
+                    }
+                }
+            }
+            return results;
+        };
+        /**
+         * iterates through objects contained within bounding box
+         * stops iterating if the callback returns true
+         * @param {AABB} bounds - bounding box to search
+         * @param {function} callback
+         * @return {boolean} - true if callback returned early
+         */
+        Simple.prototype.queryCallback = function (bounds, callback) {
+            for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
+                var list = _a[_i];
+                for (var _b = 0, list_2 = list; _b < list_2.length; _b++) {
+                    var object = list_2[_b];
+                    var box = object.AABB;
+                    if (box &&
+                        box.x + box.width > bounds.x && box.x - box.width < bounds.x + bounds.width &&
+                        box.y + box.height > bounds.y && box.y - box.height < bounds.y + bounds.height) {
+                        if (callback(object)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        };
+        /**
+         * get stats (only updated after update() is called)
+         * @return {SimpleStats}
+         */
+        Simple.prototype.stats = function () {
+            var visible = 0, count = 0;
+            for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
+                var list = _a[_i];
+                list.forEach(function (object) {
+                    visible += object.visible ? 1 : 0;
+                    count++;
+                });
+            }
+            return { total: count, visible: visible, culled: count - visible };
+        };
+        return Simple;
+    }());
 
     // Copyright Joyent, Inc. and other Node contributors.
 
@@ -40843,14 +40840,15 @@
         }
 
         add(textureId, matrix,
-            lineWidth, lineAlignment,
+            lineWidth, lineAlignment, lineScaleMode,
             settings)
         {
             const { textureIds, matrices, lines, count } = this;
 
+            textureId = (textureId * 4) + lineScaleMode;
             for (let i = 0; i < count; i++)
             {
-                if (lines[i * 2] === lineWidth && lines[i * 2 + 1] === lineAlignment
+                if (lines[i * 2] === lineWidth && lines[(i * 2) + 1] === lineAlignment
                     && textureIds[i] === textureId && (matrixEquals(matrices[i], matrix)))
                 {
                     return i;
@@ -40863,7 +40861,7 @@
             textureIds[count] = textureId;
             matrices[count] = matrix;
             lines[count * 2] = lineWidth;
-            lines[count * 2 + 1] = lineAlignment;
+            lines[(count * 2) + 1] = lineAlignment;
             this.count++;
 
             return count;
@@ -40936,7 +40934,8 @@
             return (this.shader === shader);
         }
 
-        add(texture, matrix, lineWidth, lineAlignment)
+        add(texture, matrix, lineWidth,
+            lineAlignment, lineScaleMode)
         {
             const { texArray, TICK, styleArray, settings } = this;
             const { baseTexture } = texture;
@@ -40949,7 +40948,8 @@
             const loc = baseTexture._batchEnabled !== TICK ? texArray.count : baseTexture._batchLocation;
             // check and add style
             // add1 -> add2 only works in chain, not when there are several adds inside
-            const res = styleArray.add(loc, matrix || Matrix.IDENTITY, lineWidth, lineAlignment, settings);
+            const res = styleArray.add(loc, matrix || Matrix.IDENTITY,
+                lineWidth, lineAlignment, lineScaleMode, settings);
 
             if (res >= 0)
             {
@@ -41051,10 +41051,7 @@
             return obj;
         }
 
-        /**
-         * returns width multiplied by scaleMode
-         */
-        packLineWidth()
+        packLineScale()
         {
             return 0;
         }
@@ -41117,6 +41114,8 @@
     var LINE_SCALE_MODE; (function (LINE_SCALE_MODE) {
         const NONE = 'none'; LINE_SCALE_MODE["NONE"] = NONE;
         const NORMAL = 'normal'; LINE_SCALE_MODE["NORMAL"] = NORMAL;
+        const HORIZONTAL = 'horizontal'; LINE_SCALE_MODE["HORIZONTAL"] = HORIZONTAL;
+        const VERTICAL = 'vertical'; LINE_SCALE_MODE["VERTICAL"] = VERTICAL;
     })(LINE_SCALE_MODE || (LINE_SCALE_MODE = {}));
 
     class LineStyle extends FillStyle
@@ -41156,9 +41155,15 @@
         /**
          * returns width multiplied by scaleMode
          */
-        packLineWidth()
+        packLineScale()
         {
-            return this.scaleMode === LINE_SCALE_MODE.NORMAL ? this.width : -this.width;
+            switch (this.scaleMode)
+            {
+                case LINE_SCALE_MODE.NORMAL: return 1;
+                case LINE_SCALE_MODE.HORIZONTAL: return 2;
+                case LINE_SCALE_MODE.VERTICAL: return 3;
+                default: return 0;
+            }
         }
 
         reset()
@@ -41276,7 +41281,8 @@
         
         
 
-        beginPack(buildData, bufFloat, bufUint, indices, bufferPos = 0, indexPos = 0)
+        beginPack(buildData, bufFloat, bufUint,
+            indices, bufferPos = 0, indexPos = 0)
         {
             this.buildData = buildData;
             this.bufFloat = bufFloat;
@@ -41305,8 +41311,10 @@
             let index = this.bufferPos / this.strideFloats;
 
             // eslint-disable-next-line max-len
-            let x1; let y1; let x2; let y2; let prevX; let prevY; let nextX; let
-                nextY;
+            let x1; let y1;
+            let x2; let y2;
+            let prevX; let prevY;
+            let nextX; let nextY;
             // let type: number;
             let hasTriangle = false;
 
@@ -41473,24 +41481,24 @@
     }
 
     // no caps for now
-    verts[JOINT_TYPE.JOINT_BEVEL] = 4 + 3;
-    verts[JOINT_TYPE.JOINT_BEVEL + 1] = 4 + 3;
-    verts[JOINT_TYPE.JOINT_BEVEL + 2] = 4 + 3;
-    verts[JOINT_TYPE.JOINT_BEVEL + 3] = 4 + 3;
+    verts[JOINT_TYPE.JOINT_BEVEL] = 4 + 5;
+    verts[JOINT_TYPE.JOINT_BEVEL + 1] = 4 + 5;
+    verts[JOINT_TYPE.JOINT_BEVEL + 2] = 4 + 5;
+    verts[JOINT_TYPE.JOINT_BEVEL + 3] = 4 + 5;
     verts[JOINT_TYPE.JOINT_ROUND] = 4 + 5;
     verts[JOINT_TYPE.JOINT_ROUND + 1] = 4 + 5;
     verts[JOINT_TYPE.JOINT_ROUND + 2] = 4 + 5;
     verts[JOINT_TYPE.JOINT_ROUND + 3] = 4 + 5;
-    verts[JOINT_TYPE.JOINT_MITER] = 4 + 4;
-    verts[JOINT_TYPE.JOINT_MITER + 1] = 4 + 4;
+    verts[JOINT_TYPE.JOINT_MITER] = 4 + 5;
+    verts[JOINT_TYPE.JOINT_MITER + 1] = 4 + 5;
     verts[JOINT_TYPE.JOINT_MITER + 2] = 4;
     verts[JOINT_TYPE.JOINT_MITER + 3] = 4;
     verts[JOINT_TYPE.JOINT_CAP_BUTT] = 4;
     verts[JOINT_TYPE.JOINT_CAP_BUTT + 1] = 4;
     verts[JOINT_TYPE.JOINT_CAP_SQUARE] = 4;
     verts[JOINT_TYPE.JOINT_CAP_SQUARE + 1] = 4;
-    verts[JOINT_TYPE.JOINT_CAP_ROUND] = 4 + 4;
-    verts[JOINT_TYPE.JOINT_CAP_ROUND + 1] = 4 + 4;
+    verts[JOINT_TYPE.JOINT_CAP_ROUND] = 4 + 5;
+    verts[JOINT_TYPE.JOINT_CAP_ROUND + 1] = 4 + 5;
 
     verts[JOINT_TYPE.CAP_ROUND] = 4;
 
@@ -41649,51 +41657,144 @@
         path(graphicsData, _target)
         {
             // need to convert points to a nice regular data
-            const circleData = graphicsData.shape ;
             const points = graphicsData.points;
-            const x = circleData.x;
-            const y = circleData.y;
-            let width;
-            let height;
-            // TODO - bit hacky??
+
+            let x;
+            let y;
+            let dx;
+            let dy;
+            let rx;
+            let ry;
 
             if (graphicsData.type === SHAPES.CIRC)
             {
-                width = circleData.radius;
-                height = circleData.radius;
+                const circle = graphicsData.shape ;
+
+                x = circle.x;
+                y = circle.y;
+                rx = ry = circle.radius;
+                dx = dy = 0;
+            }
+            else if (graphicsData.type === SHAPES.ELIP)
+            {
+                const ellipse = graphicsData.shape ;
+
+                x = ellipse.x;
+                y = ellipse.y;
+                rx = ellipse.width;
+                ry = ellipse.height;
+                dx = dy = 0;
             }
             else
             {
-                const ellipseData = graphicsData.shape ;
+                const roundedRect = graphicsData.shape ;
+                const halfWidth = roundedRect.width / 2;
+                const halfHeight = roundedRect.height / 2;
 
-                width = ellipseData.width;
-                height = ellipseData.height;
+                x = roundedRect.x + halfWidth;
+                y = roundedRect.y + halfHeight;
+                rx = ry = Math.max(0, Math.min(roundedRect.radius, Math.min(halfWidth, halfHeight)));
+                dx = halfWidth - rx;
+                dy = halfHeight - ry;
             }
 
-            if (width <= 0 || height <= 0)
+            if (!(rx >= 0 && ry >= 0 && dx >= 0 && dy >= 0))
+            {
+                points.length = 0;
+
+                return;
+            }
+
+            // Choose a number of segments such that the maximum absolute deviation from the circle is approximately 0.029
+            const n = Math.ceil(2.3 * Math.sqrt(rx + ry));
+            const m = (n * 8) + (dx ? 4 : 0) + (dy ? 4 : 0);
+
+            points.length = m;
+
+            if (m === 0)
             {
                 return;
             }
 
-            points.push(x, y);
-
-            let totalSegs = Math.floor(30 * Math.sqrt(circleData.radius))
-                || Math.floor(15 * Math.sqrt(width + height));
-
-            totalSegs /= 2.3;
-            if (totalSegs < 3)
+            if (n === 0)
             {
-                totalSegs = 3;
+                points.length = 8;
+                points[0] = points[6] = x + dx;
+                points[1] = points[3] = y + dy;
+                points[2] = points[4] = x - dx;
+                points[5] = points[7] = y - dy;
+
+                return;
             }
 
-            const seg = (Math.PI * 2) / totalSegs;
+            let j1 = 0;
+            let j2 = (n * 4) + (dx ? 2 : 0) + 2;
+            let j3 = j2;
+            let j4 = m;
 
-            for (let i = 0; i < totalSegs - 0.5; i++)
             {
-                points.push(
-                    x + (Math.sin(-seg * i) * width),
-                    y + (Math.cos(-seg * i) * height)
-                );
+                const x0 = dx + rx;
+                const y0 = dy;
+                const x1 = x + x0;
+                const x2 = x - x0;
+                const y1 = y + y0;
+
+                points[j1++] = x1;
+                points[j1++] = y1;
+                points[--j2] = y1;
+                points[--j2] = x2;
+
+                if (dy)
+                {
+                    const y2 = y - y0;
+
+                    points[j3++] = x2;
+                    points[j3++] = y2;
+                    points[--j4] = y2;
+                    points[--j4] = x1;
+                }
+            }
+
+            for (let i = 1; i < n; i++)
+            {
+                const a = Math.PI / 2 * (i / n);
+                const x0 = dx + (Math.cos(a) * rx);
+                const y0 = dy + (Math.sin(a) * ry);
+                const x1 = x + x0;
+                const x2 = x - x0;
+                const y1 = y + y0;
+                const y2 = y - y0;
+
+                points[j1++] = x1;
+                points[j1++] = y1;
+                points[--j2] = y1;
+                points[--j2] = x2;
+                points[j3++] = x2;
+                points[j3++] = y2;
+                points[--j4] = y2;
+                points[--j4] = x1;
+            }
+
+            {
+                const x0 = dx;
+                const y0 = dy + ry;
+                const x1 = x + x0;
+                const x2 = x - x0;
+                const y1 = y + y0;
+                const y2 = y - y0;
+
+                points[j1++] = x1;
+                points[j1++] = y1;
+                points[--j4] = y2;
+                points[--j4] = x1;
+
+                if (dx)
+                {
+                    points[j1++] = x2;
+                    points[j1++] = y1;
+                    points[--j4] = y2;
+                    points[--j4] = x2;
+                }
             }
         }
 
@@ -41702,48 +41803,112 @@
             const { verts, joints } = target;
             const { points, triangles } = graphicsData;
 
+            if (points.length === 0)
+            {
+                return;
+            }
+
+            let x;
+            let y;
+
+            if (graphicsData.type !== SHAPES.RREC)
+            {
+                const circle = graphicsData.shape ;
+
+                x = circle.x;
+                y = circle.y;
+            }
+            else
+            {
+                const roundedRect = graphicsData.shape ;
+
+                x = roundedRect.x + (roundedRect.width / 2);
+                y = roundedRect.y + (roundedRect.height / 2);
+            }
+
+            const matrix = graphicsData.matrix;
+            const cx = matrix ? (matrix.a * x) + (matrix.c * y) + matrix.tx : x;
+            const cy = matrix ? (matrix.b * x) + (matrix.d * y) + matrix.ty : y;
+
             let vertPos = 1;
             const center = 0;
 
             if (!graphicsData.fillAA)
             {
-                for (let i = 0; i < points.length; i += 2)
+                verts.push(cx, cy);
+                joints.push(JOINT_TYPE.FILL);
+                verts.push(points[0], points[1]);
+                joints.push(JOINT_TYPE.FILL);
+
+                for (let i = 2; i < points.length; i += 2)
                 {
                     verts.push(points[i], points[i + 1]);
                     joints.push(JOINT_TYPE.FILL);
-                    if (i > 2)
-                    {
-                        triangles.push(vertPos++, center, vertPos);
-                    }
+
+                    triangles.push(vertPos++, center, vertPos);
                 }
-                triangles.push(vertPos, center, 1);
+
+                triangles.push(center + 1, center, vertPos);
 
                 return;
             }
 
-            const cx = points[0]; const
-                cy = points[1];
-            const rad = (graphicsData.shape ).radius;
+            const len = points.length;
 
-            for (let i = 2; i < points.length; i += 2)
+            let x1 = points[len - 2];
+            let y1 = points[len - 1];
+
+            let nx1 = y1 - points[len - 3];
+            let ny1 = points[len - 4] - x1;
+            const n1 = Math.sqrt(nx1 * nx1 + ny1 * ny1);
+
+            nx1 /= n1;
+            ny1 /= n1;
+
+            let bx1;
+            let by1;
+
+            for (let i = 0; i < len; i += 2)
             {
-                // const prev = i;
-                const cur = i;
-                const next = i + 2 < points.length ? i + 2 : 2;
+                const x2 = points[i];
+                const y2 = points[i + 1];
+
+                let nx2 = y2 - y1;
+                let ny2 = x1 - x2;
+                const n2 = Math.sqrt(nx2 * nx2 + ny2 * ny2);
+
+                nx2 /= n2;
+                ny2 /= n2;
+
+                let bx2 = nx1 + nx2;
+                let by2 = ny1 + ny2;
+                const b2 = nx2 * bx2 + ny2 * by2;
+
+                bx2 /= b2;
+                by2 /= b2;
+
+                if (i > 0)
+                {
+                    verts.push(bx2);
+                    verts.push(by2);
+                }
+                else
+                {
+                    bx1 = bx2;
+                    by1 = by2;
+                }
 
                 verts.push(cx);
                 verts.push(cy);
-                verts.push(points[cur]);
-                verts.push(points[cur + 1]);
-                verts.push(points[next]);
-                verts.push(points[next + 1]);
+                verts.push(x1);
+                verts.push(y1);
+                verts.push(x2);
+                verts.push(y2);
 
                 verts.push(0);
                 verts.push(0);
-                verts.push((points[cur] - cx) / rad);
-                verts.push((points[cur + 1] - cy) / rad);
-                verts.push((points[next] - cx) / rad);
-                verts.push((points[next + 1] - cy) / rad);
+                verts.push(bx2);
+                verts.push(by2);
 
                 joints.push(JOINT_TYPE.FILL_EXPAND + 2);
                 joints.push(JOINT_TYPE.NONE);
@@ -41751,188 +41916,30 @@
                 joints.push(JOINT_TYPE.NONE);
                 joints.push(JOINT_TYPE.NONE);
                 joints.push(JOINT_TYPE.NONE);
+
+                x1 = x2;
+                y1 = y2;
+                nx1 = nx2;
+                ny1 = ny2;
             }
+
+            verts.push(bx1);
+            verts.push(by1);
         }
 
         line(graphicsData, target)
         {
             const { verts, joints } = target;
             const { points } = graphicsData;
-            const joint = graphicsData.goodJointType();
-            const len = points.length;
-
-            verts.push(points[len - 2], points[len - 1]);
-            joints.push(JOINT_TYPE.NONE);
-            for (let i = 2; i < len; i += 2)
-            {
-                verts.push(points[i], points[i + 1]);
-                joints.push(joint);
-            }
-            verts.push(points[2], points[3]);
-            joints.push(JOINT_TYPE.NONE);
-            verts.push(points[4], points[5]);
-            joints.push(JOINT_TYPE.NONE);
-        }
-    }
-
-    class RectangleBuilder 
-    {
-        path(graphicsData, _target)
-        {
-            // --- //
-            // need to convert points to a nice regular data
-            //
-            const rectData = graphicsData.shape ;
-            const x = rectData.x;
-            const y = rectData.y;
-            const width = rectData.width;
-            const height = rectData.height;
-            const points = graphicsData.points;
-
-            points.length = 0;
-
-            points.push(x, y,
-                x + width, y,
-                x + width, y + height,
-                x, y + height);
-        }
-
-        line(graphicsData, target)
-        {
-            const { verts, joints } = target;
-            const { points } = graphicsData;
-
-            const joint = graphicsData.goodJointType();
-            const len = points.length;
-
-            verts.push(points[len - 2], points[len - 1]);
-            joints.push(JOINT_TYPE.NONE);
-            for (let i = 0; i < len; i += 2)
-            {
-                verts.push(points[i], points[i + 1]);
-                joints.push(joint);
-            }
-            verts.push(points[0], points[1]);
-            joints.push(JOINT_TYPE.NONE);
-            verts.push(points[2], points[3]);
-            joints.push(JOINT_TYPE.NONE);
-        }
-
-        fill(graphicsData, target)
-        {
-            const { verts, joints } = target;
-            const { points, triangles } = graphicsData;
-
-            triangles.length = 0;
-
-            verts.push(points[0], points[1],
-                points[2], points[3],
-                points[4], points[5],
-                points[6], points[7]);
-
-            joints.push(JOINT_TYPE.FILL, JOINT_TYPE.FILL, JOINT_TYPE.FILL, JOINT_TYPE.FILL);
-            triangles.push(0, 1, 2, 0, 2, 3);
-        }
-    }
-
-    function getPt(n1, n2, perc)
-    {
-        const diff = n2 - n1;
-
-        return n1 + (diff * perc);
-    }
-
-    function quadraticBezierCurve(
-        fromX, fromY,
-        cpX, cpY,
-        toX, toY,
-        out = [])
-    {
-        const n = 20;
-        const points = out;
-
-        let xa = 0;
-        let ya = 0;
-        let xb = 0;
-        let yb = 0;
-        let x = 0;
-        let y = 0;
-
-        for (let i = 0, j = 0; i <= n; ++i)
-        {
-            j = i / n;
-
-            // The Green Line
-            xa = getPt(fromX, cpX, j);
-            ya = getPt(fromY, cpY, j);
-            xb = getPt(cpX, toX, j);
-            yb = getPt(cpY, toY, j);
-
-            // The Black Dot
-            x = getPt(xa, xb, j);
-            y = getPt(ya, yb, j);
-
-            points.push(x, y);
-        }
-
-        return points;
-    }
-
-    class RoundedRectangleBuilder 
-    {
-        path(graphicsData, _target)
-        {
-            const rrectData = graphicsData.shape ;
-            const { points } = graphicsData;
-            const x = rrectData.x;
-            const y = rrectData.y;
-            const width = rrectData.width;
-            const height = rrectData.height;
-
-            // Don't allow negative radius or greater than half the smallest width
-            const radius = Math.max(0, Math.min(rrectData.radius, Math.min(width, height) / 2));
-
-            points.length = 0;
-
-            // No radius, do a simple rectangle
-            if (!radius)
-            {
-                points.push(x, y,
-                    x + width, y,
-                    x + width, y + height,
-                    x, y + height);
-            }
-            else
-            {
-                quadraticBezierCurve(x, y + radius,
-                    x, y,
-                    x + radius, y,
-                    points);
-                quadraticBezierCurve(x + width - radius,
-                    y, x + width, y,
-                    x + width, y + radius,
-                    points);
-                quadraticBezierCurve(x + width, y + height - radius,
-                    x + width, y + height,
-                    x + width - radius, y + height,
-                    points);
-                quadraticBezierCurve(x + radius, y + height,
-                    x, y + height,
-                    x, y + height - radius,
-                    points);
-            }
-        }
-
-        line(graphicsData, target)
-        {
-            const { verts, joints } = target;
-            const { points } = graphicsData;
-
-
             const joint = points.length === 8 // we dont need joints for arcs
                 ? graphicsData.goodJointType() : JOINT_TYPE.JOINT_MITER + 3;
             const len = points.length;
 
+            if (len === 0)
+            {
+                return;
+            }
+
             verts.push(points[len - 2], points[len - 1]);
             joints.push(JOINT_TYPE.NONE);
             for (let i = 0; i < len; i += 2)
@@ -41945,23 +41952,48 @@
             verts.push(points[2], points[3]);
             joints.push(JOINT_TYPE.NONE);
         }
-
-        fill(graphicsData, target)
-        {
-            const { verts, joints } = target;
-            const { points } = graphicsData;
-
-            graphicsData.triangles = earcut_1(points, null, 2);
-
-            for (let i = 0, j = points.length; i < j; i++)
-            {
-                verts.push(points[i], points[++i]);
-                joints.push(JOINT_TYPE.FILL);
-            }
-        }
     }
 
     const tempArr = [];
+
+    function fixOrientation(points, hole = false)
+    {
+        const m = points.length;
+
+        if (m < 6)
+        {
+            return;
+        }
+
+        let area = 0;
+
+        for (let i = 0, x1 = points[m - 2], y1 = points[m - 1]; i < m; i += 2)
+        {
+            const x2 = points[i];
+            const y2 = points[i + 1];
+
+            area += (x2 - x1) * (y2 + y1);
+
+            x1 = x2;
+            y1 = y2;
+        }
+
+        if ((!hole && area > 0) || (hole && area <= 0))
+        {
+            const n = m / 2;
+
+            for (let i = n + (n % 2); i < m; i += 2)
+            {
+                const i1 = m - i - 2;
+                const i2 = m - i - 1;
+                const i3 = i;
+                const i4 = i + 1;
+
+                [points[i1], points[i3]] = [points[i3], points[i1]];
+                [points[i2], points[i4]] = [points[i4], points[i2]];
+            }
+        }
+    }
 
     class PolyBuilder 
     {
@@ -42064,7 +42096,7 @@
         line(graphicsData, buildData)
         {
             const { closeStroke, points } = graphicsData;
-            const eps = buildData.closePointEps;
+            // const eps = buildData.closePointEps;
             // const eps2 = eps * eps;
             const len = points.length;
             // const style = graphicsData.lineStyle;
@@ -42115,31 +42147,31 @@
                 const x1 = points[i]; const
                     y1 = points[i + 1];
 
-                let x2; let
-                    y2;
+                // let x2: number; let
+                //     y2: number;
 
-                if (i + 2 < len)
-                {
-                    x2 = points[i + 2];
-                    y2 = points[i + 3];
-                }
-                else
-                {
-                    x2 = points[0];
-                    y2 = points[1];
-                }
+                // if (i + 2 < len)
+                // {
+                //     x2 = points[i + 2];
+                //     y2 = points[i + 3];
+                // }
+                // else
+                // {
+                //     x2 = points[0];
+                //     y2 = points[1];
+                // }
 
-                const dx = x2 - x1;
-                const dy = y2 - y1;
-                let nextX; let
-                    nextY;
+                // const dx = x2 - x1;
+                // const dy = y2 - y1;
+                // let nextX: number; let
+                //     nextY: number;
 
                 let endJoint = joint;
 
                 if (i + 2 >= len)
                 {
-                    nextX = points[2];
-                    nextY = points[3];
+                    // nextX = points[2];
+                    // nextY = points[3];
                     if (!closeStroke)
                     {
                         endJoint = JOINT_TYPE.NONE;
@@ -42147,8 +42179,8 @@
                 }
                 else if (i + 4 >= len)
                 {
-                    nextX = points[0];
-                    nextY = points[1];
+                    // nextX = points[0];
+                    // nextY = points[1];
                     if (!closeStroke)
                     {
                         if (cap === JOINT_TYPE.CAP_ROUND)
@@ -42165,61 +42197,15 @@
                         }
                     }
                 }
-                else
-                {
-                    nextX = points[i + 4];
-                    nextY = points[i + 5];
-                }
+                // else
+                // {
+                //     nextX = points[i + 4];
+                //     nextY = points[i + 5];
+                // }
 
-                const dx3 = x1 - prevX;
-                const dy3 = y1 - prevY;
+                // const dx3 = x1 - prevX;
+                // const dy3 = y1 - prevY;
 
-                if (joint >= JOINT_TYPE.JOINT_BEVEL && joint <= JOINT_TYPE.JOINT_MITER)
-                {
-                    const dx2 = nextX - x2;
-                    const dy2 = nextY - y2;
-
-                    if (endJoint >= JOINT_TYPE.JOINT_BEVEL
-                        && endJoint <= JOINT_TYPE.JOINT_MITER + 3)
-                    {
-                        const D = dx2 * dy - dy2 * dx;
-
-                        if (Math.abs(D) < eps)
-                        {
-                            switch (joint & ~3)
-                            {
-                                case JOINT_TYPE.JOINT_ROUND:
-                                    endJoint = JOINT_TYPE.JOINT_CAP_ROUND;
-                                    break;
-                                default:
-                                    endJoint = JOINT_TYPE.JOINT_CAP_BUTT;
-                                    break;
-                            }
-                        }
-                    }
-
-                    if (joint === JOINT_TYPE.JOINT_MITER)
-                    {
-                        let jointAdd = 0;
-
-                        if (dx3 * dx + dy3 * dy > -eps)
-                        {
-                            jointAdd++;
-                        }
-                        if (endJoint === JOINT_TYPE.JOINT_MITER && dx2 * dx + dy2 * dy > -eps)
-                        {
-                            jointAdd += 2;
-                        }
-                        endJoint += jointAdd;
-                    }
-                }
-                if (prevCap === 0)
-                {
-                    if (Math.abs(dx3 * dy - dy3 * dx) < eps)
-                    {
-                        prevCap = JOINT_TYPE.CAP_BUTT2;
-                    }
-                }
                 endJoint += prevCap;
                 prevCap = 0;
 
@@ -42259,11 +42245,15 @@
             }
             const holeArray = [];
             let len = points.length;
-            // Process holes..
 
+            fixOrientation(points, false);
+
+            // Process holes..
             for (let i = 0; i < holes.length; i++)
             {
                 const hole = holes[i];
+
+                fixOrientation(hole.points, true);
 
                 holeArray.push(points.length / 2);
                 points = points.concat(hole.points);
@@ -42276,7 +42266,7 @@
             {
                 pn.length = points.length;
             }
-            const start = 0;
+            let start = 0;
 
             for (let i = 0; i <= holeArray.length; i++)
             {
@@ -42294,12 +42284,13 @@
                     }
                 }
                 pn[start * 2] = finish - 1;
-                pn[(finish - 1) * 2 + 1] = 0;
+                pn[(finish - 1) * 2 + 1] = start;
                 for (let j = start; j + 1 < finish; j++)
                 {
                     pn[j * 2 + 1] = j + 1;
                     pn[j * 2 + 2] = j;
                 }
+                start = finish;
             }
 
             // sort color
@@ -42414,6 +42405,202 @@
                     verts.push(pn[ind * 2], pn[ind * 2 + 1]);
                 }
             }
+        }
+    }
+
+    class RectangleBuilder 
+    {constructor() { RectangleBuilder.prototype.__init.call(this); }
+        __init() {this._polyBuilder = new PolyBuilder();}
+
+        path(graphicsData, _target)
+        {
+            // --- //
+            // need to convert points to a nice regular data
+            //
+            const rectData = graphicsData.shape ;
+            const x = rectData.x;
+            const y = rectData.y;
+            const width = rectData.width;
+            const height = rectData.height;
+            const points = graphicsData.points;
+
+            points.length = 0;
+
+            points.push(x, y,
+                x + width, y,
+                x + width, y + height,
+                x, y + height);
+        }
+
+        line(graphicsData, target)
+        {
+            const { verts, joints } = target;
+            const { points } = graphicsData;
+
+            const joint = graphicsData.goodJointType();
+            const len = points.length;
+
+            verts.push(points[len - 2], points[len - 1]);
+            joints.push(JOINT_TYPE.NONE);
+            for (let i = 0; i < len; i += 2)
+            {
+                verts.push(points[i], points[i + 1]);
+                joints.push(joint);
+            }
+            verts.push(points[0], points[1]);
+            joints.push(JOINT_TYPE.NONE);
+            verts.push(points[2], points[3]);
+            joints.push(JOINT_TYPE.NONE);
+        }
+
+        fill(graphicsData, target)
+        {
+            const { verts, joints } = target;
+            const { points, triangles } = graphicsData;
+
+            triangles.length = 0;
+
+            if (!graphicsData.fillAA)
+            {
+                verts.push(points[0], points[1],
+                    points[2], points[3],
+                    points[4], points[5],
+                    points[6], points[7]);
+
+                joints.push(JOINT_TYPE.FILL, JOINT_TYPE.FILL, JOINT_TYPE.FILL, JOINT_TYPE.FILL);
+                triangles.push(0, 1, 2, 0, 2, 3);
+
+                return;
+            }
+
+            this._polyBuilder.fill(graphicsData, target);
+        }
+    }
+
+    function getPt(n1, n2, perc)
+    {
+        const diff = n2 - n1;
+
+        return n1 + (diff * perc);
+    }
+
+    function quadraticBezierCurve(
+        fromX, fromY,
+        cpX, cpY,
+        toX, toY,
+        out = [],
+        eps = 0.001)
+    {
+        const n = 20;
+        const points = out;
+
+        let xa = 0;
+        let ya = 0;
+        let xb = 0;
+        let yb = 0;
+        let x = 0;
+        let y = 0;
+
+        for (let i = 0, j = 0; i <= n; ++i)
+        {
+            j = i / n;
+
+            // The Green Line
+            xa = getPt(fromX, cpX, j);
+            ya = getPt(fromY, cpY, j);
+            xb = getPt(cpX, toX, j);
+            yb = getPt(cpY, toY, j);
+
+            // The Black Dot
+            x = getPt(xa, xb, j);
+            y = getPt(ya, yb, j);
+
+            // Handle case when first curve points overlaps and earcut fails to triangulate
+            if (i === 0
+                && Math.abs(x - points[points.length - 2]) < eps
+                && Math.abs(y - points[points.length - 1]) < eps)
+            {
+                continue;
+            }
+
+            points.push(x, y);
+        }
+
+        return points;
+    }
+
+    class RoundedRectangleBuilder 
+    {constructor() { RoundedRectangleBuilder.prototype.__init.call(this); }
+        __init() {this._circleBuilder = new CircleBuilder();}
+
+        path(graphicsData, _target)
+        {
+            if ((Graphics ).nextRoundedRectBehavior)
+            {
+                this._circleBuilder.path(graphicsData, _target);
+
+                return;
+            }
+
+            const rrectData = graphicsData.shape ;
+            const { points } = graphicsData;
+            const x = rrectData.x;
+            const y = rrectData.y;
+            const width = rrectData.width;
+            const height = rrectData.height;
+
+            // Don't allow negative radius or greater than half the smallest width
+            const radius = Math.max(0, Math.min(rrectData.radius, Math.min(width, height) / 2));
+
+            points.length = 0;
+
+            // No radius, do a simple rectangle
+            if (!radius)
+            {
+                points.push(x, y,
+                    x + width, y,
+                    x + width, y + height,
+                    x, y + height);
+            }
+            else
+            {
+                const eps = _target.closePointEps;
+
+                quadraticBezierCurve(x, y + radius,
+                    x, y,
+                    x + radius, y,
+                    points, eps);
+                quadraticBezierCurve(x + width - radius,
+                    y, x + width, y,
+                    x + width, y + radius,
+                    points, eps);
+                quadraticBezierCurve(x + width, y + height - radius,
+                    x + width, y + height,
+                    x + width - radius, y + height,
+                    points, eps);
+                quadraticBezierCurve(x + radius, y + height,
+                    x, y + height,
+                    x, y + height - radius,
+                    points, eps);
+
+                if (points.length >= 4
+                    && Math.abs(points[0] - points[points.length - 2]) < eps
+                    && Math.abs(points[1] - points[points.length - 1]) < eps)
+                {
+                    points.pop();
+                    points.pop();
+                }
+            }
+        }
+
+        line(graphicsData, target)
+        {
+            this._circleBuilder.line(graphicsData, target);
+        }
+
+        fill(graphicsData, target)
+        {
+            this._circleBuilder.fill(graphicsData, target);
         }
     }
 
@@ -42778,25 +42965,43 @@
                 {
                     continue;
                 }
+                if (fillStyle.visible || lineStyle.visible)
+                {
+                    this.processHoles(holes);
+                }
                 if (fillStyle.visible)
                 {
-                    if (holes.length)
-                    {
-                        this.processHoles(holes);
-                    }
                     data.fillAA = (data.fillStyle ).smooth
-                        && !(data.lineStyle.visible
+                        && data.fillStyle.texture === Texture.WHITE
+                        && holes.length === 0
+                        && !(data.closeStroke
+                        && data.lineStyle.visible
+                        && !data.lineStyle.shader
                         && data.lineStyle.alpha >= 0.99
-                        && data.lineStyle.width >= 0.99);
+                        && data.lineStyle.width * Math.min(data.lineStyle.alignment, 1 - data.lineStyle.alignment) >= 0.495);
 
                     data.fillStart = buildData.joints.length;
-                    command.fill(data, buildData);
+
+                    if (holes.length)
+                    {
+                        FILL_COMMANDS[SHAPES.POLY].fill(data, buildData);
+                    }
+                    else
+                    {
+                        command.fill(data, buildData);
+                    }
+
                     data.fillLen = buildData.joints.length - data.fillStart;
                 }
                 if (lineStyle.visible)
                 {
                     data.strokeStart = buildData.joints.length;
                     command.line(data, buildData);
+                    for (let i = 0; i < holes.length; i++)
+                    {
+                        const hole = holes[i];
+                        FILL_COMMANDS[hole.type].line(hole, buildData);
+                    }
                     data.strokeLen = buildData.joints.length - data.strokeStart;
                 }
             }
@@ -43014,13 +43219,15 @@
             {
                 return false;
             }
-
-            if (styleA.packLineWidth() !== styleB.packLineWidth())
+            // TODO: propagate width for FillStyle
+            if ((styleA ).width !== (styleB ).width)
             {
                 return false;
             }
-
-            // TODO: propagate width for FillStyle
+            if ((styleA ).scaleMode !== (styleB ).scaleMode)
+            {
+                return false;
+            }
             if ((styleA ).alignment !== (styleB ).alignment)
             {
                 return false;
@@ -43139,7 +43346,8 @@
 
                 if (currentGroup.check(style.shader))
                 {
-                    styleId = currentGroup.add(style.texture, mat, style.packLineWidth(), style.alignment || 0);
+                    styleId = currentGroup.add(style.texture, mat,
+                        style.width, style.alignment || 0, style.packLineScale());
                 }
                 if (styleId < 0)
                 {
@@ -43147,7 +43355,8 @@
                     this.drawCalls.push(currentGroup);
                     currentGroup.begin(shaderSettings, style.shader);
                     currentGroup.start = index;
-                    styleId = currentGroup.add(style.texture, mat, style.packLineWidth(), style.alignment || 0);
+                    styleId = currentGroup.add(style.texture, mat,
+                        style.width, style.alignment || 0, style.packLineScale());
                 }
                 currentGroup.size += batchData.size;
                 index += batchData.size;
@@ -43166,6 +43375,8 @@
             {
                 const hole = holes[i];
                 const command = FILL_COMMANDS[hole.type];
+
+                hole.clearPath();
 
                 command.path(hole, this.buildData);
 
@@ -43201,17 +43412,15 @@
 
                 if (lineStyle && lineStyle.visible)
                 {
-                    const alignment = lineStyle.alignment;
-
                     lineWidth = lineStyle.width;
 
-                    if (type === SHAPES.POLY)
+                    if (type !== SHAPES.POLY || data.fillStyle.visible)
                     {
-                        lineWidth = lineWidth * (0.5 + Math.abs(0.5 - alignment));
+                        lineWidth *= Math.max(0, lineStyle.alignment);
                     }
                     else
                     {
-                        lineWidth = lineWidth * Math.max(0, alignment);
+                        lineWidth *= Math.max(lineStyle.alignment, 1 - lineStyle.alignment);
                     }
                 }
 
@@ -43283,7 +43492,8 @@
         }
     } SmoothGraphicsGeometry.__initStatic();
 
-    const smoothVert = `precision highp float;
+    const smoothVert = `#version 100
+precision highp float;
 const float FILL = 1.0;
 const float BEVEL = 4.0;
 const float MITER = 8.0;
@@ -43313,8 +43523,9 @@ uniform mat3 projectionMatrix;
 uniform mat3 translationMatrix;
 uniform vec4 tint;
 
-varying vec4 vSignedCoord;
-varying vec4 vDistance;
+varying vec4 vLine1;
+varying vec4 vLine2;
+varying vec4 vArc;
 varying float vType;
 
 uniform float resolution;
@@ -43327,7 +43538,7 @@ attribute vec4 aColor;
 varying float vTextureId;
 varying vec4 vColor;
 varying vec2 vTextureCoord;
-varying float vTravel;
+varying vec2 vTravel;
 
 uniform vec2 styleLine[%MAX_STYLES%];
 uniform vec3 styleMatrix[2 * %MAX_STYLES%];
@@ -43366,23 +43577,24 @@ void main(void){
     float vertexNum = aVertexJoint - type * 16.0;
     float dx = 0.0, dy = 1.0;
 
-
-    vec2 avgDiag = (translationMatrix * vec3(1.0, 1.0, 0.0)).xy;
-    float avgScale = sqrt(dot(avgDiag, avgDiag) * 0.5);
-
     float capType = floor(type / 32.0);
     type -= capType * 32.0;
 
     int styleId = int(aStyleId + 0.5);
     float lineWidth = styleLine[styleId].x;
-    if (lineWidth < 0.0) {
-        lineWidth = -lineWidth;
-    } else {
-        lineWidth = lineWidth * avgScale;
+    vTextureId = floor(styleTextureId[styleId] / 4.0);
+    float scaleMode = styleTextureId[styleId] - vTextureId * 4.0;
+    float avgScale = 1.0;
+    if (scaleMode > 2.5) {
+        avgScale = length(translationMatrix * vec3(1.0, 0.0, 0.0));
+    } else if (scaleMode > 1.5) {
+        avgScale = length(translationMatrix * vec3(0.0, 1.0, 0.0));
+    } else if (scaleMode > 0.5) {
+        vec2 avgDiag = (translationMatrix * vec3(1.0, 1.0, 0.0)).xy;
+        avgScale = sqrt(dot(avgDiag, avgDiag) * 0.5);
     }
-    lineWidth *= 0.5;
+    lineWidth *= 0.5 * avgScale;
     float lineAlignment = 2.0 * styleLine[styleId].y - 1.0;
-    vTextureId = styleTextureId[styleId];
     vTextureCoord = vec2(0.0);
 
     vec2 pos;
@@ -43391,13 +43603,16 @@ void main(void){
         vertexNum += 4.0;
         type = JOINT_CAP_ROUND;
         capType = 0.0;
+        lineAlignment = -lineAlignment;
     }
 
+    vLine1 = vec4(0.0, 10.0, 1.0, 0.0);
+    vLine2 = vec4(0.0, 10.0, 1.0, 0.0);
+    vArc = vec4(0.0);
     if (type == FILL) {
         pos = pointA;
-        vDistance = vec4(0.0, -0.5, -0.5, 1.0);
         vType = 0.0;
-
+        vLine2 = vec4(-2.0, -2.0, -2.0, 0.0);
         vec2 vTexturePixel;
         vTexturePixel.x = dot(vec3(aPoint1, 1.0), styleMatrix[styleId * 2]);
         vTexturePixel.y = dot(vec3(aPoint1, 1.0), styleMatrix[styleId * 2 + 1]);
@@ -43433,24 +43648,23 @@ void main(void){
             n2 = -n2;
             n3 = -n3;
         }
-
-        vDistance.w = 1.0;
         pos += bisect * expand;
 
-        vDistance = vec4(16.0, 16.0, 16.0, -1.0);
+        vLine1 = vec4(16.0, 16.0, 16.0, -1.0);
         if (flag1 > 0.5) {
-            vDistance.x = -dot(pos - prev, n1);
+            vLine1.x = -dot(pos - prev, n1);
         }
         if (flag2 > 0.5) {
-            vDistance.y = -dot(pos - pointA, n2);
+            vLine1.y = -dot(pos - pointA, n2);
         }
         if (flag3 > 0.5) {
-            vDistance.z = -dot(pos - pointB, n3);
+            vLine1.z = -dot(pos - pointB, n3);
         }
-        vDistance.xyz *= resolution;
+        vLine1.xyz *= resolution;
         vType = 2.0;
     } else if (type >= BEVEL) {
         float dy = lineWidth + expand;
+        float shift = lineWidth * lineAlignment;
         float inner = 0.0;
         if (vertexNum >= 1.5) {
             dy = -dy;
@@ -43459,12 +43673,12 @@ void main(void){
 
         vec2 base, next, xBasis2, bisect;
         float flag = 0.0;
-        float sign2 = 1.0;
+        float side2 = 1.0;
         if (vertexNum < 0.5 || vertexNum > 2.5 && vertexNum < 3.5) {
             next = (translationMatrix * vec3(aPrev, 1.0)).xy;
             base = pointA;
             flag = type - floor(type / 2.0) * 2.0;
-            sign2 = -1.0;
+            side2 = -1.0;
         } else {
             next = (translationMatrix * vec3(aNext, 1.0)).xy;
             base = pointB;
@@ -43481,24 +43695,12 @@ void main(void){
             inner = 1.0 - inner;
         }
 
-        norm2 *= sign2;
-
-        if (abs(lineAlignment) > 0.01) {
-            float shift = lineWidth * lineAlignment;
-            pointA += norm * shift;
-            pointB += norm * shift;
-            if (abs(D) < 0.01) {
-                base += norm * shift;
-            } else {
-                base += doBisect(norm, len, norm2, len2, shift, 0.0);
-            }
-        }
+        norm2 *= side2;
 
         float collinear = step(0.0, dot(norm, norm2));
 
         vType = 0.0;
         float dy2 = -1000.0;
-        float dy3 = -1000.0;
 
         if (abs(D) < 0.01 && collinear < 0.5) {
             if (type >= ROUND && type < ROUND + 1.5) {
@@ -43507,16 +43709,20 @@ void main(void){
             //TODO: BUTT here too
         }
 
+        vLine1 = vec4(0.0, lineWidth, max(abs(norm.x), abs(norm.y)), min(abs(norm.x), abs(norm.y)));
+        vLine2 = vec4(0.0, lineWidth, max(abs(norm2.x), abs(norm2.y)), min(abs(norm2.x), abs(norm2.y)));
+
         if (vertexNum < 3.5) {
-            if (abs(D) < 0.01) {
-                pos = dy * norm;
+            if (abs(D) < 0.01 && collinear < 0.5) {
+                pos = (shift + dy) * norm;
             } else {
                 if (flag < 0.5 && inner < 0.5) {
-                    pos = dy * norm;
+                    pos = (shift + dy) * norm;
                 } else {
-                    pos = doBisect(norm, len, norm2, len2, dy, inner);
+                    pos = doBisect(norm, len, norm2, len2, shift + dy, inner);
                 }
             }
+            vLine2.y = -1000.0;
             if (capType >= CAP_BUTT && capType < CAP_ROUND) {
                 float extra = step(CAP_SQUARE, capType) * lineWidth;
                 vec2 back = -forward;
@@ -43530,21 +43736,22 @@ void main(void){
             if (type >= JOINT_CAP_BUTT && type < JOINT_CAP_SQUARE + 0.5) {
                 float extra = step(JOINT_CAP_SQUARE, type) * lineWidth;
                 if (vertexNum < 0.5 || vertexNum > 2.5) {
-                    dy3 = dot(pos + base - pointB, forward) - extra;
+                    vLine2.y = dot(pos + base - pointB, forward) - extra;
                 } else {
                     pos += forward * (expand + extra);
-                    dy3 = expand;
+                    vLine2.y = expand;
                     if (capType >= CAP_BUTT) {
                         dy2 -= expand + extra;
                     }
                 }
             }
         } else if (type >= JOINT_CAP_ROUND && type < JOINT_CAP_ROUND + 1.5) {
+            base += shift * norm;
             if (inner > 0.5) {
                 dy = -dy;
                 inner = 0.0;
             }
-            vec2 d2 = abs(dy) * vec2(-norm.y, norm.x);
+            vec2 d2 = abs(dy) * forward;
             if (vertexNum < 4.5) {
                 dy = -dy;
                 pos = dy * norm;
@@ -43552,96 +43759,87 @@ void main(void){
                 pos = dy * norm;
             } else if (vertexNum < 6.5) {
                 pos = dy * norm + d2;
+                vArc.x = abs(dy);
             } else {
                 dy = -dy;
                 pos = dy * norm + d2;
+                vArc.x = abs(dy);
             }
-            dy = -0.5;
-            dy2 = pos.x;
-            dy3 = pos.y;
+            vLine2 = vec4(0.0, lineWidth * 2.0 + 10.0, 1.0  , 0.0); // forget about line2 with type=3
+            vArc.y = dy;
+            vArc.z = 0.0;
+            vArc.w = lineWidth;
             vType = 3.0;
-        } else if (abs(D) < 0.01) {
+        } else if (abs(D) < 0.01 && collinear < 0.5) {
             pos = dy * norm;
         } else {
-            if (type >= ROUND && type < ROUND + 1.5) {
-                if (inner > 0.5) {
-                    dy = -dy;
-                    inner = 0.0;
+            if (inner > 0.5) {
+                dy = -dy;
+                inner = 0.0;
+            }
+            float side = sign(dy);
+            vec2 norm3 = normalize(norm + norm2);
+
+            if (type >= MITER && type < MITER + 3.5) {
+                vec2 farVertex = doBisect(norm, len, norm2, len2, shift + dy, 0.0);
+                if (length(farVertex) > abs(shift + dy) * MITER_LIMIT) {
+                    type = BEVEL;
                 }
-                if (vertexNum < 4.5) {
-                    pos = doBisect(norm, len, norm2, len2, -dy, 1.0);
-                } else if (vertexNum < 5.5) {
-                    pos = dy * norm;
-                } else if (vertexNum > 7.5) {
-                    pos = dy * norm2;
-                } else {
-                    pos = doBisect(norm, len, norm2, len2, dy, 0.0);
-                    float d2 = abs(dy);
-                    if (length(pos) > abs(dy) * 1.5) {
-                        if (vertexNum < 6.5) {
-                            pos.x = dy * norm.x - d2 * norm.y;
-                            pos.y = dy * norm.y + d2 * norm.x;
-                        } else {
-                            pos.x = dy * norm2.x + d2 * norm2.y;
-                            pos.y = dy * norm2.y - d2 * norm2.x;
-                        }
-                    }
-                }
-                vec2 norm3 = normalize(norm - norm2);
-                dy = pos.x * norm3.y - pos.y * norm3.x - 3.0;
-                dy2 = pos.x;
-                dy3 = pos.y;
-                vType = 3.0;
+            }
+
+            if (vertexNum < 4.5) {
+                pos = doBisect(norm, len, norm2, len2, shift - dy, 1.0);
+            } else if (vertexNum < 5.5) {
+                pos = (shift + dy) * norm;
+            } else if (vertexNum > 7.5) {
+                pos = (shift + dy) * norm2;
             } else {
-                if (type >= MITER && type < MITER + 3.5) {
-                    if (inner > 0.5) {
-                        dy = -dy;
-                        inner = 0.0;
-                    }
-                    float sign = step(0.0, dy) * 2.0 - 1.0;
-                    pos = doBisect(norm, len, norm2, len2, dy, 0.0);
-                    if (length(pos) > abs(dy) * MITER_LIMIT) {
-                        type = BEVEL;
-                    } else {
-                        if (vertexNum < 4.5) {
-                            dy = -dy;
-                            pos = doBisect(norm, len, norm2, len2, dy, 1.0);
-                        } else if (vertexNum < 5.5) {
-                            pos = dy * norm;
-                        } else if (vertexNum > 6.5) {
-                            pos = dy * norm2;
-                            // dy = ...
-                        }
-                    }
-                    vType = 1.0;
-                    dy = -sign * dot(pos, norm);
-                    dy2 = -sign * dot(pos, norm2);
-                }
-                if (type >= BEVEL && type < BEVEL + 1.5) {
-                    if (inner < 0.5) {
-                        dy = -dy;
-                        inner = 1.0;
-                    }
-                    vec2 norm3 = normalize((norm + norm2) / 2.0);
-                    if (vertexNum < 4.5) {
-                        pos = doBisect(norm, len, norm2, len2, dy, 1.0);
-                        dy2 = -abs(dot(pos + dy * norm, norm3));
-                    } else {
-                        dy2 = 0.0;
-                        dy = -dy;
-                        if (vertexNum < 5.5) {
-                            pos = dy * norm;
+                if (type >= ROUND && type < ROUND + 1.5) {
+                    pos = doBisect(norm, len, norm2, len2, shift + dy, 0.0);
+                    float d2 = abs(shift + dy);
+                    if (length(pos) > abs(shift + dy) * 1.5) {
+                        if (vertexNum < 6.5) {
+                            pos.x = (shift + dy) * norm.x - d2 * norm.y;
+                            pos.y = (shift + dy) * norm.y + d2 * norm.x;
                         } else {
-                            pos = dy * norm2;
+                            pos.x = (shift + dy) * norm2.x + d2 * norm2.y;
+                            pos.y = (shift + dy) * norm2.y - d2 * norm2.x;
                         }
+                    }
+                } else if (type >= MITER && type < MITER + 3.5) {
+                    pos = doBisect(norm, len, norm2, len2, shift + dy, 0.0); //farVertex
+                } else if (type >= BEVEL && type < BEVEL + 1.5) {
+                    float d2 = side / resolution;
+                    if (vertexNum < 6.5) {
+                        pos = (shift + dy) * norm + d2 * norm3;
+                    } else {
+                        pos = (shift + dy) * norm2 + d2 * norm3;
                     }
                 }
             }
+
+            if (type >= ROUND && type < ROUND + 1.5) {
+                vArc.x = side * dot(pos, norm3);
+                vArc.y = pos.x * norm3.y - pos.y * norm3.x;
+                vArc.z = dot(norm, norm3) * (lineWidth + side * shift);
+                vArc.w = lineWidth + side * shift;
+                vType = 3.0;
+            } else if (type >= MITER && type < MITER + 3.5) {
+                vType = 1.0;
+            } else if (type >= BEVEL && type < BEVEL + 1.5) {
+                vType = 4.0;
+                vArc.z = dot(norm, norm3) * (lineWidth + side * shift) - side * dot(pos, norm3);
+            }
+
+            dy = side * (dot(pos, norm) - shift);
+            dy2 = side * (dot(pos, norm2) - shift);
         }
 
         pos += base;
-        vDistance = vec4(dy, dy2, dy3, lineWidth) * resolution;
-        vTravel = aTravel * avgScale + dot(pos - pointA, vec2(-norm.y, norm.x));
+        vLine1.xy = vec2(dy, vLine1.y) * resolution;
+        vLine2.xy = vec2(dy2, vLine2.y) * resolution;
+        vArc = vArc * resolution;
+        vTravel = vec2(aTravel * avgScale + dot(pos - pointA, vec2(-norm.y, norm.x)), avgScale);
     }
 
     gl_Position = vec4((projectionMatrix * vec3(pos, 1.0)).xy, 0.0, 1.0);
@@ -43649,44 +43847,29 @@ void main(void){
     vColor = aColor * tint;
 }`;
 
-    const smoothFrag = `
+    const precision = `#version 100
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+#else
+  precision mediump float;
+#endif
+`;
+
+    const smoothFrag = `%PRECISION%
 varying vec4 vColor;
-varying vec4 vDistance;
+varying vec4 vLine1;
+varying vec4 vLine2;
+varying vec4 vArc;
 varying float vType;
 varying float vTextureId;
 varying vec2 vTextureCoord;
-varying float vTravel;
+varying vec2 vTravel;
 uniform sampler2D uSamplers[%MAX_TEXTURES%];
 
+%PIXEL_LINE%
+
 void main(void){
-    float alpha = 1.0;
-    float lineWidth = vDistance.w;
-    if (vType < 0.5) {
-        float left = max(vDistance.x - 0.5, -vDistance.w);
-        float right = min(vDistance.x + 0.5, vDistance.w);
-        float near = vDistance.y - 0.5;
-        float far = min(vDistance.y + 0.5, 0.0);
-        float top = vDistance.z - 0.5;
-        float bottom = min(vDistance.z + 0.5, 0.0);
-        alpha = max(right - left, 0.0) * max(bottom - top, 0.0) * max(far - near, 0.0);
-    } else if (vType < 1.5) {
-        float a1 = clamp(vDistance.x + 0.5 - lineWidth, 0.0, 1.0);
-        float a2 = clamp(vDistance.x + 0.5 + lineWidth, 0.0, 1.0);
-        float b1 = clamp(vDistance.y + 0.5 - lineWidth, 0.0, 1.0);
-        float b2 = clamp(vDistance.y + 0.5 + lineWidth, 0.0, 1.0);
-        alpha = a2 * b2 - a1 * b1;
-    } else if (vType < 2.5) {
-        alpha *= max(min(vDistance.x + 0.5, 1.0), 0.0);
-        alpha *= max(min(vDistance.y + 0.5, 1.0), 0.0);
-        alpha *= max(min(vDistance.z + 0.5, 1.0), 0.0);
-    } else {
-        float dist2 = sqrt(dot(vDistance.yz, vDistance.yz));
-        float rad = vDistance.w;
-        float left = max(dist2 - 0.5, -rad);
-        float right = min(dist2 + 0.5, rad);
-        // TODO: something has to be done about artifact at vDistance.x far side
-        alpha = 1.0 - step(vDistance.x, 0.0) * (1.0 - max(right - left, 0.0));
-    }
+    %PIXEL_COVERAGE%
 
     vec4 texColor;
     float textureId = floor(vTextureId+0.5);
@@ -43696,34 +43879,76 @@ void main(void){
 }
 `;
 
-    class SmoothGraphicsProgram extends Program
+    const pixelLineFunc = [`
+float pixelLine(float x, float A, float B) {
+    return clamp(x + 0.5, 0.0, 1.0);
+}
+`, `
+float pixelLine(float x, float A, float B) {
+    float y = abs(x), s = sign(x);
+    if (y * 2.0 < A - B) {
+        return 0.5 + s * y / A;
+    }
+    y -= (A - B) * 0.5;
+    y = max(1.0 - y / B, 0.0);
+    return (1.0 + s * (1.0 - y * y)) * 0.5;
+    //return clamp(x + 0.5, 0.0, 1.0);
+}
+`];
+
+    const pixelCoverage = `float alpha = 1.0;
+if (vType < 0.5) {
+    float left = pixelLine(-vLine1.y - vLine1.x, vLine1.z, vLine1.w);
+    float right = pixelLine(vLine1.y - vLine1.x, vLine1.z, vLine1.w);
+    float near = vLine2.x - 0.5;
+    float far = min(vLine2.x + 0.5, 0.0);
+    float top = vLine2.y - 0.5;
+    float bottom = min(vLine2.y + 0.5, 0.0);
+    alpha = (right - left) * max(bottom - top, 0.0) * max(far - near, 0.0);
+} else if (vType < 1.5) {
+    float a1 = pixelLine(- vLine1.y - vLine1.x, vLine1.z, vLine1.w);
+    float a2 = pixelLine(vLine1.y - vLine1.x, vLine1.z, vLine1.w);
+    float b1 = pixelLine(- vLine2.y - vLine2.x, vLine2.z, vLine2.w);
+    float b2 = pixelLine(vLine2.y - vLine2.x, vLine2.z, vLine2.w);
+    alpha = a2 * b2 - a1 * b1;
+} else if (vType < 2.5) {
+    alpha *= max(min(vLine1.x + 0.5, 1.0), 0.0);
+    alpha *= max(min(vLine1.y + 0.5, 1.0), 0.0);
+    alpha *= max(min(vLine1.z + 0.5, 1.0), 0.0);
+} else if (vType < 3.5) {
+    float a1 = pixelLine(- vLine1.y - vLine1.x, vLine1.z, vLine1.w);
+    float a2 = pixelLine(vLine1.y - vLine1.x, vLine1.z, vLine1.w);
+    float b1 = pixelLine(- vLine2.y - vLine2.x, vLine2.z, vLine2.w);
+    float b2 = pixelLine(vLine2.y - vLine2.x, vLine2.z, vLine2.w);
+    float alpha_miter = a2 * b2 - a1 * b1;
+    float alpha_plane = clamp(vArc.z - vArc.x + 0.5, 0.0, 1.0);
+    float d = length(vArc.xy);
+    float circle_hor = max(min(vArc.w, d + 0.5) - max(-vArc.w, d - 0.5), 0.0);
+    float circle_vert = min(vArc.w * 2.0, 1.0);
+    float alpha_circle = circle_hor * circle_vert;
+    alpha = min(alpha_miter, max(alpha_circle, alpha_plane));
+} else {
+    float a1 = pixelLine(- vLine1.y - vLine1.x, vLine1.z, vLine1.w);
+    float a2 = pixelLine(vLine1.y - vLine1.x, vLine1.z, vLine1.w);
+    float b1 = pixelLine(- vLine2.y - vLine2.x, vLine2.z, vLine2.w);
+    float b2 = pixelLine(vLine2.y - vLine2.x, vLine2.z, vLine2.w);
+    alpha = a2 * b2 - a1 * b1;
+    alpha *= clamp(vArc.z + 0.5, 0.0, 1.0);
+}
+`;
+
+    class SmoothGraphicsShader extends Shader
     {
         
 
         constructor(settings,
             vert = smoothVert,
             frag = smoothFrag,
-            _uniforms = {})
+            uniforms = {})
         {
-            const { maxStyles, maxTextures } = settings;
+            vert = SmoothGraphicsShader.generateVertexSrc(settings, vert);
+            frag = SmoothGraphicsShader.generateFragmentSrc(settings, frag);
 
-            vert = vert.replace(/%MAX_TEXTURES%/gi, `${maxTextures}`)
-                .replace(/%MAX_STYLES%/gi, `${maxStyles}`);
-            frag = frag.replace(/%MAX_TEXTURES%/gi, `${maxTextures}`)
-                // eslint-disable-next-line @typescript-eslint/no-use-before-define
-                .replace(/%FOR_LOOP%/gi, SmoothGraphicsShader.generateSampleSrc(maxTextures));
-
-            super(vert, frag);
-            this.settings = settings;
-        }
-    }
-
-    class SmoothGraphicsShader extends Shader
-    {
-        
-
-        constructor(settings, prog = new SmoothGraphicsProgram(settings), uniforms = {})
-        {
             const { maxStyles, maxTextures } = settings;
             const sampleValues = new Int32Array(maxTextures);
 
@@ -43731,7 +43956,7 @@ void main(void){
             {
                 sampleValues[i] = i;
             }
-            super(prog, (Object ).assign(uniforms, {
+            super(Program.from(vert, frag), (Object ).assign(uniforms, {
                 styleMatrix: new Float32Array(6 * maxStyles),
                 styleTextureId: new Float32Array(maxStyles),
                 styleLine: new Float32Array(2 * maxStyles),
@@ -43742,6 +43967,29 @@ void main(void){
                 expand: 1,
             }));
             this.settings = settings;
+        }
+
+        static generateVertexSrc(settings, vertexSrc = smoothVert)
+        {
+            const { maxStyles, maxTextures } = settings;
+
+            vertexSrc = vertexSrc.replace(/%MAX_TEXTURES%/gi, `${maxTextures}`)
+                .replace(/%MAX_STYLES%/gi, `${maxStyles}`);
+
+            return vertexSrc;
+        }
+
+        static generateFragmentSrc(settings, fragmentSrc = smoothFrag)
+        {
+            const { maxTextures, pixelLine } = settings;
+
+            fragmentSrc = fragmentSrc.replace(/%PRECISION%/gi, precision)
+                .replace(/%PIXEL_LINE%/gi, pixelLineFunc[pixelLine])
+                .replace(/%PIXEL_COVERAGE%/gi, pixelCoverage)
+                .replace(/%MAX_TEXTURES%/gi, `${maxTextures}`)
+                .replace(/%FOR_LOOP%/gi, this.generateSampleSrc(maxTextures));
+
+            return fragmentSrc;
         }
 
         static generateSampleSrc(maxTextures)
@@ -43779,8 +44027,10 @@ void main(void){
         LINE_SCALE_MODE: LINE_SCALE_MODE.NORMAL,
         SHADER_MAX_STYLES: 24,
         SHADER_MAX_TEXTURES: 4,
+        PIXEL_LINE: 0,
     };
 
+    const UnsmoothGraphics = Graphics;
     const { BezierUtils, QuadraticUtils, ArcUtils } = graphicsUtils;
 
     const temp = new Float32Array(3);
@@ -43807,6 +44057,14 @@ void main(void){
 
     class SmoothGraphics extends Container
     {
+         static get nextRoundedRectBehavior() {
+            return (UnsmoothGraphics ).nextRoundedRectBehavior;
+        }
+
+         static set nextRoundedRectBehavior(value) {
+            (UnsmoothGraphics ).nextRoundedRectBehavior = value;
+        }
+
         static __initStatic() {this._TEMP_POINT = new Point();}
 
         
@@ -43846,6 +44104,7 @@ void main(void){
             this.shaderSettings = {
                 maxStyles: settings.SHADER_MAX_STYLES,
                 maxTextures: settings.SHADER_MAX_TEXTURES,
+                pixelLine: settings.PIXEL_LINE,
             };
 
             this.state = State.for2d();
@@ -44310,12 +44569,14 @@ void main(void){
 
             return data.length === 1
                 && data[0].shape.type === SHAPES.RECT
+                && !data[0].matrix
+                && !data[0].holes.length
                 && !(data[0].lineStyle.visible && data[0].lineStyle.width);
         }
 
          _renderCanvas(renderer)
         {
-            (Graphics.prototype )._renderCanvas.call(this, renderer);
+            (UnsmoothGraphics.prototype )._renderCanvas.call(this, renderer);
         }
 
          _render(renderer)
@@ -44696,40 +44957,7 @@ void main(void){
 
             super.destroy(options);
         }
-
-        drawStar(x, y,
-            points, radius, innerRadius, rotation = 0)
-        {
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define
-            return this.drawPolygon(new Star(x, y, points, radius, innerRadius, rotation) );
-        }
     } SmoothGraphics.__initStatic();
-
-    class Star extends Polygon
-    {
-        constructor(x, y, points, radius, innerRadius, rotation = 0)
-        {
-            innerRadius = innerRadius || radius / 2;
-
-            const startAngle = (-1 * Math.PI / 2) + rotation;
-            const len = points * 2;
-            const delta = PI_2 / len;
-            const polygon = [];
-
-            for (let i = 0; i < len; i++)
-            {
-                const r = i % 2 ? innerRadius : radius;
-                const angle = (i * delta) + startAngle;
-
-                polygon.push(
-                    x + (r * Math.cos(angle)),
-                    y + (r * Math.sin(angle))
-                );
-            }
-
-            super(polygon);
-        }
-    }
 
     /*!
      * @pixi/mixin-get-child-by-name - v6.1.2
@@ -45265,10 +45493,10 @@ void main(void){
     function updateNodeVisibility(nodeGfx, zoomStep) {
         // nodeGfx -> nodeCircleBorder
         var nodeCircleBorder = nodeGfx.getChildByName(NODE_CIRCLE_BORDER);
-        nodeCircleBorder.visible = nodeCircleBorder.visible && zoomStep >= 1;
+        nodeCircleBorder.visible = zoomStep >= 1;
         // nodeGfx -> nodeIcon
         var nodeIcon = nodeGfx.getChildByName(NODE_ICON);
-        nodeIcon.visible = nodeIcon.visible && zoomStep >= 2;
+        nodeIcon.visible = zoomStep >= 2;
     }
 
     var DELIMETER = '::';
@@ -45317,10 +45545,10 @@ void main(void){
     function updateNodeLabelVisibility(nodeLabelGfx, zoomStep) {
         // nodeLabelGfx -> nodeLabelBackground
         var nodeLabelBackground = nodeLabelGfx.getChildByName(NODE_LABEL_BACKGROUND);
-        nodeLabelBackground.visible = nodeLabelBackground.visible && zoomStep >= 3;
+        nodeLabelBackground.visible = zoomStep >= 3;
         // nodeLabelGfx -> nodeLabelText
         var nodeLabelText = nodeLabelGfx.getChildByName(NODE_LABEL_TEXT);
-        nodeLabelText.visible = nodeLabelText.visible && zoomStep >= 3;
+        nodeLabelText.visible = zoomStep >= 3;
     }
 
     var PixiNode = /** @class */ (function (_super) {
@@ -45409,7 +45637,7 @@ void main(void){
     function updateEdgeVisibility(edgeGfx, zoomStep) {
         // edgeGfx -> edgeLine
         var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
-        edgeLine.visible = edgeLine.visible && zoomStep >= 1;
+        edgeLine.visible = zoomStep >= 1;
     }
 
     var PixiEdge = /** @class */ (function (_super) {
@@ -45534,6 +45762,9 @@ void main(void){
                 autoDensity: true,
             });
             _this.container.appendChild(_this.app.view);
+            _this.cull = new Simple({
+                dirtyTest: true,
+            });
             _this.app.renderer.plugins.interaction.moveWhenInside = true;
             _this.app.view.addEventListener('wheel', function (event) {
                 event.preventDefault();
@@ -45786,8 +46017,14 @@ void main(void){
             this.mousedownEdgeKey = null;
         };
         PixiGraph.prototype.createGraph = function () {
+            var _this = this;
             this.graph.forEachNode(this.createNode.bind(this));
             this.graph.forEachEdge(this.createEdge.bind(this));
+            // todo
+            // when graph change(position change or add/delete new node)
+            // should mark related object dirty.
+            // @ts-ignore
+            this.viewport.children.map(function (layer) { return _this.cull.addList(layer.children); });
         };
         PixiGraph.prototype.createNode = function (nodeKey, nodeAttributes) {
             var _this = this;
@@ -45903,10 +46140,15 @@ void main(void){
         };
         PixiGraph.prototype.updateGraphVisibility = function () {
             var _this = this;
-            // culling
-            var cull = new Cull();
-            cull.addAll(this.viewport.children.map(function (layer) { return layer.children; }).flat());
-            cull.cull(this.app.renderer.screen);
+            // culling, currently
+            console.time('cull');
+            this.cull.cull(this.viewport.getVisibleBounds(), false);
+            console.timeEnd('cull');
+            console.log(this.cull.stats());
+            // original culling have performance issue.
+            // const cull = new Cull();
+            // cull.addAll((this.viewport.children as Container[]).map((layer) => layer.children).flat());
+            // cull.cull(this.app.renderer.screen);
             // console.log(
             //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === true).length,
             //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === false).length

@@ -12,7 +12,7 @@ var interaction = require('@pixi/interaction');
 var display = require('@pixi/display');
 var math = require('@pixi/math');
 var pixiViewport = require('pixi-viewport');
-var cull = require('@pixi-essentials/cull');
+var pixiCull = require('pixi-cull');
 var tinyTypedEmitter = require('tiny-typed-emitter');
 var deepmerge = require('deepmerge');
 var constants = require('@pixi/constants');
@@ -232,10 +232,10 @@ function updateNodeStyle(nodeGfx, nodeStyle, textureCache) {
 function updateNodeVisibility(nodeGfx, zoomStep) {
     // nodeGfx -> nodeCircleBorder
     var nodeCircleBorder = nodeGfx.getChildByName(NODE_CIRCLE_BORDER);
-    nodeCircleBorder.visible = nodeCircleBorder.visible && zoomStep >= 1;
+    nodeCircleBorder.visible = zoomStep >= 1;
     // nodeGfx -> nodeIcon
     var nodeIcon = nodeGfx.getChildByName(NODE_ICON);
-    nodeIcon.visible = nodeIcon.visible && zoomStep >= 2;
+    nodeIcon.visible = zoomStep >= 2;
 }
 
 var DELIMETER = '::';
@@ -284,10 +284,10 @@ function updateNodeLabelStyle(nodeLabelGfx, nodeStyle, textureCache) {
 function updateNodeLabelVisibility(nodeLabelGfx, zoomStep) {
     // nodeLabelGfx -> nodeLabelBackground
     var nodeLabelBackground = nodeLabelGfx.getChildByName(NODE_LABEL_BACKGROUND);
-    nodeLabelBackground.visible = nodeLabelBackground.visible && zoomStep >= 3;
+    nodeLabelBackground.visible = zoomStep >= 3;
     // nodeLabelGfx -> nodeLabelText
     var nodeLabelText = nodeLabelGfx.getChildByName(NODE_LABEL_TEXT);
-    nodeLabelText.visible = nodeLabelText.visible && zoomStep >= 3;
+    nodeLabelText.visible = zoomStep >= 3;
 }
 
 var PixiNode = /** @class */ (function (_super) {
@@ -376,7 +376,7 @@ function updateEdgeStyle(edgeGfx, edgeStyle, _textureCache) {
 function updateEdgeVisibility(edgeGfx, zoomStep) {
     // edgeGfx -> edgeLine
     var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
-    edgeLine.visible = edgeLine.visible && zoomStep >= 1;
+    edgeLine.visible = zoomStep >= 1;
 }
 
 var PixiEdge = /** @class */ (function (_super) {
@@ -501,6 +501,9 @@ var PixiGraph = /** @class */ (function (_super) {
             autoDensity: true,
         });
         _this.container.appendChild(_this.app.view);
+        _this.cull = new pixiCull.Simple({
+            dirtyTest: true,
+        });
         _this.app.renderer.plugins.interaction.moveWhenInside = true;
         _this.app.view.addEventListener('wheel', function (event) {
             event.preventDefault();
@@ -753,8 +756,14 @@ var PixiGraph = /** @class */ (function (_super) {
         this.mousedownEdgeKey = null;
     };
     PixiGraph.prototype.createGraph = function () {
+        var _this = this;
         this.graph.forEachNode(this.createNode.bind(this));
         this.graph.forEachEdge(this.createEdge.bind(this));
+        // todo
+        // when graph change(position change or add/delete new node)
+        // should mark related object dirty.
+        // @ts-ignore
+        this.viewport.children.map(function (layer) { return _this.cull.addList(layer.children); });
     };
     PixiGraph.prototype.createNode = function (nodeKey, nodeAttributes) {
         var _this = this;
@@ -870,10 +879,15 @@ var PixiGraph = /** @class */ (function (_super) {
     };
     PixiGraph.prototype.updateGraphVisibility = function () {
         var _this = this;
-        // culling
-        var cull$1 = new cull.Cull();
-        cull$1.addAll(this.viewport.children.map(function (layer) { return layer.children; }).flat());
-        cull$1.cull(this.app.renderer.screen);
+        // culling, currently
+        console.time('cull');
+        this.cull.cull(this.viewport.getVisibleBounds(), false);
+        console.timeEnd('cull');
+        console.log(this.cull.stats());
+        // original culling have performance issue.
+        // const cull = new Cull();
+        // cull.addAll((this.viewport.children as Container[]).map((layer) => layer.children).flat());
+        // cull.cull(this.app.renderer.screen);
         // console.log(
         //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === true).length,
         //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === false).length
