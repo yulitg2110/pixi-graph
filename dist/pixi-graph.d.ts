@@ -27,11 +27,9 @@ interface GraphStyle {
             color: string;
         };
         icon: {
-            content: string;
-            type: TextType;
-            fontFamily: string;
-            fontSize: number;
-            color: string;
+            url?: string;
+            width?: number;
+            height?: number;
         };
         label: {
             content: string;

@@ -62,9 +62,9 @@
 
       window.addEventListener('DOMContentLoaded', async () => {
         const graph = new graphology.Graph();
-        // const { nodes, links } = await (await fetch('miserables.json')).json();
+        const { nodes, links } = await (await fetch('miserables.json')).json();
         // const { nodes, links } = await (await fetch('socfb-Caltech36.json')).json();
-        const { nodes, links } = await (await fetch('facebook.json')).json();
+        // const { nodes, links } = await (await fetch('facebook.json')).json();
         nodes.forEach((node) => {
           graph.addNode(`${node.id}`, node);
         });
@@ -80,7 +80,7 @@
         console.time('layout');
         forceAtlas2.assign(graph, {
           iterations: 300,
-          settings: { ...forceAtlas2.inferSettings(graph), scalingRatio: 80, barnesHutOptimize: true },
+          settings: { ...forceAtlas2.inferSettings(graph), scalingRatio: 500, barnesHutOptimize: true },
         });
         console.timeEnd('layout');
         // const positions = await (await fetch('miserables-positions.json')).json();
@@ -99,10 +99,9 @@
               color: '#ffffff',
             },
             icon: {
-              content: 'person',
-              fontFamily: 'Material Icons',
-              fontSize: 20,
-              color: '#ffffff',
+              url: 'icon.png',
+              width: 60,
+              height: 60,
             },
             label: {
               content: (node) => `${node.id}`,
@@ -137,6 +136,10 @@
           {
             name: 'HelveticaRegular',
             url: 'https://gist.githubusercontent.com/zakjan/b61c0a26d297edf0c09a066712680f37/raw/8cdda3c21ba3668c3dd022efac6d7f740c9f1e18/HelveticaRegular.fnt',
+          },
+          {
+            name: 'icon.png',
+            url: 'icon.png',
           },
         ];
         await new FontFaceObserver('Material Icons').load();

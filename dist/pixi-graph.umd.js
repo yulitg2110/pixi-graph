@@ -45445,7 +45445,7 @@ if (vType < 0.5) {
         nodeGfx.addChild(nodeIcon);
     }
     function updateNodeStyle(nodeGfx, nodeStyle, textureCache) {
-        var _a, _b, _c;
+        var _a, _b;
         var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
         var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$1);
         var nodeCircleTexture = textureCache.get(nodeCircleTextureKey, function () {
@@ -45461,19 +45461,6 @@ if (vType < 0.5) {
             graphics.drawCircle(nodeOuterSize, nodeOuterSize, nodeStyle.size);
             return graphics;
         });
-        var nodeIconTextureKey = [
-            NODE_ICON,
-            nodeStyle.icon.fontFamily,
-            nodeStyle.icon.fontSize,
-            nodeStyle.icon.content,
-        ].join(DELIMETER$1);
-        var nodeIconTexture = textureCache.get(nodeIconTextureKey, function () {
-            var text = textToPixi(nodeStyle.icon.type, nodeStyle.icon.content, {
-                fontFamily: nodeStyle.icon.fontFamily,
-                fontSize: nodeStyle.icon.fontSize,
-            });
-            return text;
-        });
         // nodeGfx
         nodeGfx.hitArea.radius = nodeOuterSize;
         // nodeGfx -> nodeCircle
@@ -45485,10 +45472,13 @@ if (vType < 0.5) {
         nodeCircleBorder.texture = nodeCircleBorderTexture;
         _b = colorToPixi(nodeStyle.border.color), nodeCircleBorder.tint = _b[0], nodeCircleBorder.alpha = _b[1];
         // nodeGfx -> nodeIcon
-        var nodeIcon = nodeGfx.getChildByName(NODE_ICON);
-        nodeIcon.texture = nodeIconTexture;
-        _c = colorToPixi(nodeStyle.icon.color), nodeIcon.tint = _c[0], nodeIcon.alpha = _c[1];
-        nodeGfx.addChild(nodeIcon);
+        if (nodeStyle.icon.url && nodeStyle.icon.width && nodeStyle.icon.height) {
+            var nodeIcon = nodeGfx.getChildByName(NODE_ICON);
+            nodeIcon.texture = Texture.from(nodeStyle.icon.url);
+            nodeIcon.width = nodeStyle.icon.width;
+            nodeIcon.height = nodeStyle.icon.height;
+            nodeGfx.addChild(nodeIcon);
+        }
     }
     function updateNodeVisibility(nodeGfx, zoomStep) {
         // nodeGfx -> nodeCircleBorder
@@ -45496,7 +45486,9 @@ if (vType < 0.5) {
         nodeCircleBorder.visible = zoomStep >= 1;
         // nodeGfx -> nodeIcon
         var nodeIcon = nodeGfx.getChildByName(NODE_ICON);
-        nodeIcon.visible = zoomStep >= 2;
+        if (nodeIcon) {
+            nodeIcon.visible = zoomStep >= 2;
+        }
     }
 
     var DELIMETER = '::';
@@ -45701,13 +45693,7 @@ if (vType < 0.5) {
                 width: 2,
                 color: '#ffffff',
             },
-            icon: {
-                type: exports.TextType.TEXT,
-                fontFamily: 'Arial',
-                fontSize: 20,
-                color: '#ffffff',
-                content: '',
-            },
+            icon: {},
             label: {
                 type: exports.TextType.TEXT,
                 fontFamily: 'Arial',
@@ -46140,7 +46126,7 @@ if (vType < 0.5) {
         };
         PixiGraph.prototype.updateGraphVisibility = function () {
             var _this = this;
-            // culling, currently
+            // culling
             this.cull.cull(this.viewport.getVisibleBounds(), false);
             // original culling have performance issue.
             // const cull = new Cull();

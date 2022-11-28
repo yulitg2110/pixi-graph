@@ -1,3 +1,4 @@
+import { Texture } from '@pixi/core';
 import { Container } from '@pixi/display';
 import { Circle } from '@pixi/math';
 import { Sprite } from '@pixi/sprite';
@@ -5,7 +6,6 @@ import { SmoothGraphics as Graphics } from '@pixi/graphics-smooth';
 import '@pixi/mixin-get-child-by-name';
 import { colorToPixi } from '../utils/color';
 import { NodeStyle } from '../utils/style';
-import { textToPixi } from '../utils/text';
 import { TextureCache } from '../texture-cache';
 
 const DELIMETER = '::';
@@ -57,20 +57,6 @@ export function updateNodeStyle(nodeGfx: Container, nodeStyle: NodeStyle, textur
     return graphics;
   });
 
-  const nodeIconTextureKey = [
-    NODE_ICON,
-    nodeStyle.icon.fontFamily,
-    nodeStyle.icon.fontSize,
-    nodeStyle.icon.content,
-  ].join(DELIMETER);
-  const nodeIconTexture = textureCache.get(nodeIconTextureKey, () => {
-    const text = textToPixi(nodeStyle.icon.type, nodeStyle.icon.content, {
-      fontFamily: nodeStyle.icon.fontFamily,
-      fontSize: nodeStyle.icon.fontSize,
-    });
-    return text;
-  });
-
   // nodeGfx
   (nodeGfx.hitArea as Circle).radius = nodeOuterSize;
 
@@ -85,10 +71,13 @@ export function updateNodeStyle(nodeGfx: Container, nodeStyle: NodeStyle, textur
   [nodeCircleBorder.tint, nodeCircleBorder.alpha] = colorToPixi(nodeStyle.border.color);
 
   // nodeGfx -> nodeIcon
-  const nodeIcon = nodeGfx.getChildByName!(NODE_ICON) as unknown as Sprite;
-  nodeIcon.texture = nodeIconTexture;
-  [nodeIcon.tint, nodeIcon.alpha] = colorToPixi(nodeStyle.icon.color);
-  nodeGfx.addChild(nodeIcon);
+  if (nodeStyle.icon.url && nodeStyle.icon.width && nodeStyle.icon.height) {
+    const nodeIcon = nodeGfx.getChildByName!(NODE_ICON) as unknown as Sprite;
+    nodeIcon.texture = Texture.from(nodeStyle.icon.url);
+    nodeIcon.width = nodeStyle.icon.width;
+    nodeIcon.height = nodeStyle.icon.height;
+    nodeGfx.addChild(nodeIcon);
+  }
 }
 
 export function updateNodeVisibility(nodeGfx: Container, zoomStep: number) {
@@ -98,5 +87,7 @@ export function updateNodeVisibility(nodeGfx: Container, zoomStep: number) {
 
   // nodeGfx -> nodeIcon
   const nodeIcon = nodeGfx.getChildByName!(NODE_ICON) as unknown as Sprite;
-  nodeIcon.visible = zoomStep >= 2;
+  if (nodeIcon) {
+    nodeIcon.visible = zoomStep >= 2;
+  }
 }

@@ -34,13 +34,7 @@ const DEFAULT_STYLE: GraphStyleDefinition = {
       width: 2,
       color: '#ffffff',
     },
-    icon: {
-      type: TextType.TEXT,
-      fontFamily: 'Arial',
-      fontSize: 20,
-      color: '#ffffff',
-      content: '',
-    },
+    icon: {},
     label: {
       type: TextType.TEXT,
       fontFamily: 'Arial',
