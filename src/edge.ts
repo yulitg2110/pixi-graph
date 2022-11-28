@@ -2,8 +2,8 @@ import { Container } from '@pixi/display';
 import { InteractionEvent } from '@pixi/interaction';
 import { IPointData } from '@pixi/math';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { createEdge, updateEdgeStyle, updateEdgeVisibility } from './renderers/edge';
-import { EdgeStyle } from './utils/style';
+import { createEdge, updateEdgeStyle, updateEdgeVisibility, updatePosition } from './renderers/edge';
+import { EdgeStyle, NodeStyle } from './utils/style';
 import { TextureCache } from './texture-cache';
 
 interface PixiEdgeEvents {
@@ -46,7 +46,7 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     return edgeGfx;
   }
 
-  updatePosition(sourceNodePosition: IPointData, targetNodePosition: IPointData) {
+  updatePosition(sourceNodePosition: IPointData, targetNodePosition: IPointData, nodeStyle: NodeStyle) {
     const position = {
       x: (sourceNodePosition.x + targetNodePosition.x) / 2,
       y: (sourceNodePosition.y + targetNodePosition.y) / 2,
@@ -55,14 +55,13 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
       targetNodePosition.x - sourceNodePosition.x,
       targetNodePosition.y - sourceNodePosition.y
     );
-    const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
     this.edgeGfx.position.copyFrom(position);
     this.edgeGfx.rotation = rotation;
-    this.edgeGfx.height = length;
+    updatePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle);
   }
 
-  updateStyle(edgeStyle: EdgeStyle, textureCache: TextureCache) {
-    updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache);
+  updateStyle(edgeStyle: EdgeStyle, textureCache: TextureCache, isDirected: boolean) {
+    updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected);
   }
 
   updateVisibility(zoomStep: number) {

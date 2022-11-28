@@ -7770,8 +7770,8 @@
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     }
 
-    var __assign$1 = function() {
-        __assign$1 = Object.assign || function __assign(t) {
+    var __assign = function() {
+        __assign = Object.assign || function __assign(t) {
             var arguments$1 = arguments;
 
             for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -7780,7 +7780,7 @@
             }
             return t;
         };
-        return __assign$1.apply(this, arguments);
+        return __assign.apply(this, arguments);
     };
 
     function __rest(s, e) {
@@ -16055,7 +16055,7 @@
     }());
 
     // Temporary rectangle for assigned sourceFrame or destinationFrame
-    var tempRect = new Rectangle();
+    var tempRect$1 = new Rectangle();
     // Temporary rectangle for renderTexture destinationFrame
     var tempRect2 = new Rectangle();
     /* eslint-disable max-len */
@@ -16150,9 +16150,9 @@
                 baseTexture = renderTexture.baseTexture;
                 resolution = baseTexture.resolution;
                 if (!sourceFrame) {
-                    tempRect.width = renderTexture.frame.width;
-                    tempRect.height = renderTexture.frame.height;
-                    sourceFrame = tempRect;
+                    tempRect$1.width = renderTexture.frame.width;
+                    tempRect$1.height = renderTexture.frame.height;
+                    sourceFrame = tempRect$1;
                 }
                 if (!destinationFrame) {
                     tempRect2.x = renderTexture.frame.x;
@@ -16166,12 +16166,12 @@
             else {
                 resolution = renderer.resolution;
                 if (!sourceFrame) {
-                    tempRect.width = renderer.screen.width;
-                    tempRect.height = renderer.screen.height;
-                    sourceFrame = tempRect;
+                    tempRect$1.width = renderer.screen.width;
+                    tempRect$1.height = renderer.screen.height;
+                    sourceFrame = tempRect$1;
                 }
                 if (!destinationFrame) {
-                    destinationFrame = tempRect;
+                    destinationFrame = tempRect$1;
                     destinationFrame.width = sourceFrame.width;
                     destinationFrame.height = sourceFrame.height;
                 }
@@ -17968,7 +17968,7 @@
                 { region.width = 1; }
             if (region.height === 0)
                 { region.height = 1; }
-            var renderTexture = RenderTexture.create(__assign$1({ width: region.width, height: region.height }, textureOptions));
+            var renderTexture = RenderTexture.create(__assign({ width: region.width, height: region.height }, textureOptions));
             tempMatrix$1.tx = -region.x;
             tempMatrix$1.ty = -region.y;
             this.render(displayObject, {
@@ -28831,7 +28831,7 @@
         return BitmapFontLoader;
     }());
 
-    var WHITE$1 = 0xffffff;
+    var WHITE$2 = 0xffffff;
     exports.TextType = void 0;
     (function (TextType) {
         TextType["TEXT"] = "TEXT";
@@ -28846,7 +28846,7 @@
             text = new Text(content, {
                 fontFamily: style.fontFamily,
                 fontSize: style.fontSize,
-                fill: WHITE$1,
+                fill: WHITE$2,
             });
         }
         else if (type === exports.TextType.BITMAP_TEXT) {
@@ -36842,245 +36842,250 @@
         }
     }
 
-    /*! *****************************************************************************
-    Copyright (c) Microsoft Corporation.
+    /* eslint-disable */
 
-    Permission to use, copy, modify, and/or distribute this software for any
-    purpose with or without fee is hereby granted.
+    const tempRect = new Rectangle();
 
-    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-    REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-    AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-    INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-    LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-    OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-    PERFORMANCE OF THIS SOFTWARE.
-    ***************************************************************************** */
+    /**
+     * The culling options for {@code Cull}.
+     *
+     * @ignore
+     * @public
+     */
 
-    var __assign = function() {
-        __assign = Object.assign || function __assign(t) {
-            for (var s, i = 1, n = arguments.length; i < n; i++) {
-                s = arguments[i];
-                for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
-            }
-            return t;
-        };
-        return __assign.apply(this, arguments);
-    };
 
-    var defaultSimpleOptions = {
-        visible: 'visible',
-        dirtyTest: false
-    };
-    var Simple = /** @class */ (function () {
+
+
+
+
+    /**
+     * Provides a simple, configurable mechanism for culling a subtree of your scene graph.
+     *
+     * If your scene graph is not static, culling needs to be done before rendering. You
+     * can run it on the `prerender` event fired by the renderer.
+     *
+     * @public
+     */
+    class Cull
+    {
+        
+        
+        
+
         /**
-         * Creates a simple cull
-         * Note, options.dirtyTest defaults to false. Set to true for much better performance--this requires
-         * additional work to ensure displayObject.dirty is set when objects change)
-         *
-         * @param {object} [options]
-         * @param {string} [options.dirtyTest=false] - only update the AABB box for objects with object[options.dirtyTest]=true; this has a HUGE impact on performance
+         * @param options
+         * @param [options.recursive] - whether culling should be recursive
+         * @param [options.toggle='renderable'] - which property of display-object was be set to indicate
+         *      its culling state. It should be one of `renderable`, `visible`.
          */
-        function Simple(options) {
-            if (options === void 0) { options = {}; }
-            options = __assign(__assign({}, defaultSimpleOptions), options);
-            this.dirtyTest = typeof options.dirtyTest !== 'undefined' ? options.dirtyTest : true;
-            this.lists = [[]];
+        constructor(options = {})
+        {
+            this._recursive = typeof options.recursive === 'boolean' ? options.recursive : true;
+            this._toggle = options.toggle || 'visible';
+            this._targetList = new Set();
         }
+
         /**
-         * add an array of objects to be culled, eg: `simple.addList(container.children)`
-         * @param {Array} array
-         * @param {boolean} [staticObject] - set to true if the object's position/size does not change
-         * @return {Array} array
-         */
-        Simple.prototype.addList = function (array, staticObject) {
-            this.lists.push(array);
-            if (staticObject) {
-                array.staticObject = true;
-            }
-            var length = array.length;
-            for (var i = 0; i < length; i++) {
-                this.updateObject(array[i]);
-            }
-            return array;
-        };
-        /**
-         * remove an array added by addList()
-         * @param {Array} array
-         * @return {Array} array
-         */
-        Simple.prototype.removeList = function (array) {
-            var index = this.lists.indexOf(array);
-            if (index === -1) {
-                return array;
-            }
-            this.lists.splice(index, 1);
-            return array;
-        };
-        /**
-         * add an object to be culled
-         * NOTE: for implementation, add and remove uses this.lists[0]
+         * Adds a display-object to the culling list
          *
-         * @param {DisplayObjectWithCulling} object
-         * @param {boolean} [staticObject] - set to true if the object's position/size does not change
-         * @return {DisplayObjectWithCulling} object
+         * @param target - the display-object to be culled
+         * @return this
          */
-        Simple.prototype.add = function (object, staticObject) {
-            if (staticObject) {
-                object.staticObject = true;
-            }
-            if (this.dirtyTest || staticObject) {
-                this.updateObject(object);
-            }
-            this.lists[0].push(object);
-            return object;
-        };
+        add(target)
+        {
+            this._targetList.add(target);
+
+            return this;
+        }
+
         /**
-         * remove an object added by add()
-         * NOTE: for implementation, add and remove uses this.lists[0]
+         * Adds all the display-objects to the culling list
          *
-         * @param {DisplayObjectWithCulling} object
-         * @return {DisplayObjectWithCulling} object
+         * @param targets - the display-objects to be culled
+         * @return this
          */
-        Simple.prototype.remove = function (object) {
-            var index = this.lists[0].indexOf(object);
-            if (index === -1) {
-                return object;
+        addAll(targets)
+        {
+            for (let i = 0, j = targets.length; i < j; i++)
+            {
+                this._targetList.add(targets[i]);
             }
-            this.lists[0].splice(index, 1);
-            return object;
-        };
+
+            return this;
+        }
+
         /**
-         * cull the items in the list by changing the object.visible
-         * @param {AABB} bounds
-         * @param {boolean} [skipUpdate] - skip updating the AABB bounding box of all objects
+         * Removes the display-object from the culling list
+         *
+         * @param target - the display-object to be removed
+         * @return this
          */
-        Simple.prototype.cull = function (bounds, skipUpdate) {
-            if (!skipUpdate) {
-                this.updateObjects();
+        remove(target)
+        {
+            this._targetList.delete(target);
+
+            return this;
+        }
+
+        /**
+         * Removes all the passed display-objects from the culling list
+         *
+         * @param targets - the display-objects to be removed
+         * @return this
+         */
+        removeAll(targets)
+        {
+            for (let i = 0, j = targets.length; i < j; i++)
+            {
+                this._targetList.delete(targets[i]);
             }
-            for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
-                var list = _a[_i];
-                var length_1 = list.length;
-                for (var i = 0; i < length_1; i++) {
-                    var object = list[i];
-                    var box = object.AABB;
-                    object.visible =
-                        box.x + box.width > bounds.x && box.x < bounds.x + bounds.width &&
-                            box.y + box.height > bounds.y && box.y < bounds.y + bounds.height;
+
+            return this;
+        }
+
+        /**
+         * Clears the culling list
+         *
+         * @return this
+         */
+        clear()
+        {
+            this._targetList.clear();
+
+            return this;
+        }
+
+        /**
+         * @param rect - the rectangle outside of which display-objects should be culled
+         * @param skipUpdate - whether to skip unculling, transform update, bounds calculation. It is
+         *  highly recommended you enable this by calling _this.uncull()_ and _root.getBounds(false)_ manually
+         *  before your render loop.
+         * @return this
+         */
+        cull(rect, skipUpdate = false)
+        {
+            if (!skipUpdate)
+            {
+                this.uncull();
+            }
+
+            this._targetList.forEach((target) =>
+            {
+                if (!skipUpdate)
+                {
+                    // Update transforms, bounds of display-objects in this target's subtree
+                    target.getBounds(false, tempRect);
                 }
-            }
-        };
-        /**
-         * update the AABB for all objects
-         * automatically called from update() when calculatePIXI=true and skipUpdate=false
-         */
-        Simple.prototype.updateObjects = function () {
-            if (this.dirtyTest) {
-                for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
-                    var list = _a[_i];
-                    if (!list.staticObject) {
-                        var length_2 = list.length;
-                        for (var i = 0; i < length_2; i++) {
-                            var object = list[i];
-                            if (!object.staticObject && object.dirty) {
-                                this.updateObject(object);
-                                object.dirty = false;
-                            }
-                        }
+
+                if (this._recursive)
+                {
+                    this.cullRecursive(rect, target, skipUpdate);
+                }
+                else
+                {
+                    // NOTE: If skipUpdate is false, then tempRect already contains the bounds of the target
+                    if (skipUpdate)
+                    {
+                        target._bounds.getRectangle(rect);
                     }
+
+                    target[this._toggle] = tempRect.right > rect.left
+                        && tempRect.left < rect.right
+                        && tempRect.bottom > rect.top
+                        && tempRect.top < rect.bottom;
+                }
+            });
+
+            return this;
+        }
+
+        /**
+         * Sets all display-objects to the unculled state.
+         *
+         * This happens regardless of whether the culling toggle was set by {@code this.cull} or manually. This
+         * is why it is recommended to one of `visible` or `renderable` for normal use and the other for culling.
+         *
+         * @return this
+         */
+        uncull()
+        {
+            this._targetList.forEach((target) =>
+            {
+                if (this._recursive)
+                {
+                    this.uncullRecursive(target);
+                }
+                else
+                {
+                    target[this._toggle] = false;
+                }
+            });
+
+            return this;
+        }
+
+        /**
+         * Recursively culls the subtree of {@code displayObject}.
+         *
+         * @param rect - the visiblity rectangle
+         * @param displayObject - the root of the subtree to cull
+         * @param skipUpdate - whether to skip bounds calculation. However, transforms are expected to be updated by the caller.
+         */
+         cullRecursive(rect, displayObject, skipUpdate)
+        {
+            // NOTE: getBounds can skipUpdate because updateTransform is invoked before culling.
+            const bounds = skipUpdate
+                ? displayObject._bounds.getRectangle(tempRect)
+                : displayObject.getBounds(true, tempRect);
+
+            displayObject[this._toggle] = bounds.right > rect.left
+                && bounds.left < rect.right
+                && bounds.bottom > rect.top
+                && bounds.top < rect.bottom;
+
+            const fullyVisible = bounds.left >= rect.left
+                && bounds.top >= rect.top
+                && bounds.right <= rect.right
+                && bounds.bottom <= rect.bottom;
+
+            // Only cull children if this display-object is *not* fully-visible. It is expected that the bounds
+            // of children lie inside of its own. Hence, further culling is only required if the display-object
+            // intersects with the boundaries of "rect". Otherwise, if the object is fully outside/inside the
+            // screen, the children don't need to be evaluated as they are presumed to be unculled.
+            if (!fullyVisible
+                    && displayObject[this._toggle]
+                    && (displayObject ).children
+                    && (displayObject ).children.length)
+            {
+                const children = (displayObject ).children;
+
+                for (let i = 0, j = children.length; i < j; i++)
+                {
+                    this.cullRecursive(rect, children[i]);
                 }
             }
-            else {
-                for (var _b = 0, _c = this.lists; _b < _c.length; _b++) {
-                    var list = _c[_b];
-                    if (!list.staticObject) {
-                        var length_3 = list.length;
-                        for (var i = 0; i < length_3; i++) {
-                            var object = list[i];
-                            if (!object.staticObject) {
-                                this.updateObject(object);
-                            }
-                        }
-                    }
+        }
+
+        /**
+         * Recursively unculls the subtree of {@code displayObject}.
+         *
+         * @param displayObject
+         */
+         uncullRecursive(displayObject)
+        {
+            displayObject[this._toggle] = true;
+
+            if ((displayObject ).children && (displayObject ).children.length)
+            {
+                const children = (displayObject ).children;
+
+                for (let i = 0, j = children.length; i < j; i++)
+                {
+                    this.uncullRecursive(children[i]);
                 }
             }
-        };
-        /**
-         * update the has of an object
-         * automatically called from updateObjects()
-         * @param {DisplayObjectWithCulling} object
-         */
-        Simple.prototype.updateObject = function (object) {
-            var box = object.getLocalBounds();
-            object.AABB = object.AABB || { x: 0, y: 0, width: 0, height: 0 };
-            object.AABB.x = object.x + (box.x - object.pivot.x) * Math.abs(object.scale.x);
-            object.AABB.y = object.y + (box.y - object.pivot.y) * Math.abs(object.scale.y);
-            object.AABB.width = box.width * Math.abs(object.scale.x);
-            object.AABB.height = box.height * Math.abs(object.scale.y);
-        };
-        /**
-         * returns an array of objects contained within bounding box
-         * @param {AABB} bounds - bounding box to search
-         * @return {DisplayObjectWithCulling[]} - search results
-         */
-        Simple.prototype.query = function (bounds) {
-            var results = [];
-            for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
-                var list = _a[_i];
-                for (var _b = 0, list_1 = list; _b < list_1.length; _b++) {
-                    var object = list_1[_b];
-                    var box = object.AABB;
-                    if (box &&
-                        box.x + box.width > bounds.x && box.x - box.width < bounds.x + bounds.width &&
-                        box.y + box.height > bounds.y && box.y - box.height < bounds.y + bounds.height) {
-                        results.push(object);
-                    }
-                }
-            }
-            return results;
-        };
-        /**
-         * iterates through objects contained within bounding box
-         * stops iterating if the callback returns true
-         * @param {AABB} bounds - bounding box to search
-         * @param {function} callback
-         * @return {boolean} - true if callback returned early
-         */
-        Simple.prototype.queryCallback = function (bounds, callback) {
-            for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
-                var list = _a[_i];
-                for (var _b = 0, list_2 = list; _b < list_2.length; _b++) {
-                    var object = list_2[_b];
-                    var box = object.AABB;
-                    if (box &&
-                        box.x + box.width > bounds.x && box.x - box.width < bounds.x + bounds.width &&
-                        box.y + box.height > bounds.y && box.y - box.height < bounds.y + bounds.height) {
-                        if (callback(object)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        };
-        /**
-         * get stats (only updated after update() is called)
-         * @return {SimpleStats}
-         */
-        Simple.prototype.stats = function () {
-            var visible = 0, count = 0;
-            for (var _i = 0, _a = this.lists; _i < _a.length; _i++) {
-                var list = _a[_i];
-                list.forEach(function (object) {
-                    visible += object.visible ? 1 : 0;
-                    count++;
-                });
-            }
-            return { total: count, visible: visible, culled: count - visible };
-        };
-        return Simple;
-    }());
+        }
+    }
 
     // Copyright Joyent, Inc. and other Node contributors.
 
@@ -45420,8 +45425,8 @@ if (vType < 0.5) {
         return [pixiColor, alpha];
     }
 
-    var DELIMETER$1 = '::';
-    var WHITE = 0xffffff;
+    var DELIMETER$2 = '::';
+    var WHITE$1 = 0xffffff;
     var NODE_CIRCLE = 'NODE_CIRCLE';
     var NODE_CIRCLE_BORDER = 'NODE_CIRCLE_BORDER';
     var NODE_ICON = 'NODE_ICON';
@@ -45447,17 +45452,17 @@ if (vType < 0.5) {
     function updateNodeStyle(nodeGfx, nodeStyle, textureCache) {
         var _a, _b;
         var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
-        var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$1);
+        var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$2);
         var nodeCircleTexture = textureCache.get(nodeCircleTextureKey, function () {
             var graphics = new SmoothGraphics();
-            graphics.beginFill(WHITE, 1.0, true);
+            graphics.beginFill(WHITE$1, 1.0, true);
             graphics.drawCircle(nodeStyle.size, nodeStyle.size, nodeStyle.size);
             return graphics;
         });
-        var nodeCircleBorderTextureKey = [NODE_CIRCLE_BORDER, nodeStyle.size, nodeStyle.border.width].join(DELIMETER$1);
+        var nodeCircleBorderTextureKey = [NODE_CIRCLE_BORDER, nodeStyle.size, nodeStyle.border.width].join(DELIMETER$2);
         var nodeCircleBorderTexture = textureCache.get(nodeCircleBorderTextureKey, function () {
             var graphics = new SmoothGraphics();
-            graphics.lineStyle(nodeStyle.border.width, WHITE);
+            graphics.lineStyle(nodeStyle.border.width, WHITE$1);
             graphics.drawCircle(nodeOuterSize, nodeOuterSize, nodeStyle.size);
             return graphics;
         });
@@ -45491,7 +45496,7 @@ if (vType < 0.5) {
         }
     }
 
-    var DELIMETER = '::';
+    var DELIMETER$1 = '::';
     var NODE_LABEL_BACKGROUND = 'NODE_LABEL_BACKGROUND';
     var NODE_LABEL_TEXT = 'NODE_LABEL_TEXT';
     function createNodeLabel(nodeLabelGfx) {
@@ -45514,7 +45519,7 @@ if (vType < 0.5) {
             nodeStyle.label.fontFamily,
             nodeStyle.label.fontSize,
             nodeStyle.label.content,
-        ].join(DELIMETER);
+        ].join(DELIMETER$1);
         var nodeLabelTextTexture = textureCache.get(nodeLabelTextTextureKey, function () {
             var text = textToPixi(nodeStyle.label.type, nodeStyle.label.content, {
                 fontFamily: nodeStyle.label.fontFamily,
@@ -45611,25 +45616,66 @@ if (vType < 0.5) {
         return PixiNode;
     }(TypedEmitter));
 
+    var DELIMETER = '::';
+    var WHITE = 0xffffff;
     var EDGE_LINE = 'EDGE_LINE';
+    var EDGE_ARROW = 'EDGE_ARROW';
+    var ARROW_SIZE = 5;
     function createEdge(edgeGfx) {
         // edgeGfx -> edgeLine
         var edgeLine = new Sprite(Texture.WHITE);
         edgeLine.name = EDGE_LINE;
         edgeLine.anchor.set(0.5);
         edgeGfx.addChild(edgeLine);
+        // edgeGfx -> edgeArrow
+        var edgeArrow = new Sprite();
+        edgeArrow.name = EDGE_ARROW;
+        edgeArrow.anchor.set(0.5);
+        edgeGfx.addChild(edgeArrow);
     }
-    function updateEdgeStyle(edgeGfx, edgeStyle, _textureCache) {
-        var _a;
+    function updatePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle) {
+        var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
+        // edgeGfx -> edgeLine
+        var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
+        var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
+        // reduce line length
+        edgeLine.height = length - nodeOuterSize * 2 - 2;
+        // edgeGfx -> edgeArrow
+        var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
+        edgeArrow.y = length / 2 - nodeOuterSize - ARROW_SIZE;
+    }
+    function updateEdgeStyle(edgeGfx, edgeStyle, textureCache, isDirected) {
+        var _a, _b;
         // edgeGfx -> edgeLine
         var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
         edgeLine.width = edgeStyle.width;
         _a = colorToPixi(edgeStyle.color), edgeLine.tint = _a[0], edgeLine.alpha = _a[1];
+        if (isDirected) {
+            // edgeGfx -> edgeArrow
+            var edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER);
+            var edgeArrowTexture = textureCache.get(edgeArrowTextureKey, function () {
+                var graphics = new SmoothGraphics();
+                graphics.beginFill(WHITE, 1.0, true);
+                graphics.moveTo(0, ARROW_SIZE);
+                graphics.lineTo(ARROW_SIZE, -ARROW_SIZE);
+                graphics.lineTo(-ARROW_SIZE, -ARROW_SIZE);
+                graphics.lineTo(0, ARROW_SIZE);
+                graphics.closePath();
+                graphics.endFill();
+                return graphics;
+            });
+            var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
+            edgeArrow.texture = edgeArrowTexture;
+            _b = colorToPixi(edgeStyle.color), edgeArrow.tint = _b[0], edgeArrow.alpha = _b[1];
+        }
     }
     function updateEdgeVisibility(edgeGfx, zoomStep) {
         // edgeGfx -> edgeLine
         var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
         edgeLine.visible = zoomStep >= 1;
+        // edgeGFX -> edgeArrow
+        var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
+        edgeArrow.visible = zoomStep >= 3;
     }
 
     var PixiEdge = /** @class */ (function (_super) {
@@ -45660,19 +45706,18 @@ if (vType < 0.5) {
             createEdge(edgeGfx);
             return edgeGfx;
         };
-        PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition) {
+        PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition, nodeStyle) {
             var position = {
                 x: (sourceNodePosition.x + targetNodePosition.x) / 2,
                 y: (sourceNodePosition.y + targetNodePosition.y) / 2,
             };
             var rotation = -Math.atan2(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
-            var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
             this.edgeGfx.position.copyFrom(position);
             this.edgeGfx.rotation = rotation;
-            this.edgeGfx.height = length;
+            updatePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle);
         };
-        PixiEdge.prototype.updateStyle = function (edgeStyle, textureCache) {
-            updateEdgeStyle(this.edgeGfx, edgeStyle);
+        PixiEdge.prototype.updateStyle = function (edgeStyle, textureCache, isDirected) {
+            updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected);
         };
         PixiEdge.prototype.updateVisibility = function (zoomStep) {
             updateEdgeVisibility(this.edgeGfx, zoomStep);
@@ -45748,9 +45793,9 @@ if (vType < 0.5) {
                 autoDensity: true,
             });
             _this.container.appendChild(_this.app.view);
-            _this.cull = new Simple({
-                dirtyTest: true,
-            });
+            // this.cull = new Simple({
+            //   dirtyTest: true,
+            // });
             _this.app.renderer.plugins.interaction.moveWhenInside = true;
             _this.app.view.addEventListener('wheel', function (event) {
                 event.preventDefault();
@@ -46003,14 +46048,13 @@ if (vType < 0.5) {
             this.mousedownEdgeKey = null;
         };
         PixiGraph.prototype.createGraph = function () {
-            var _this = this;
             this.graph.forEachNode(this.createNode.bind(this));
             this.graph.forEachEdge(this.createEdge.bind(this));
             // todo
             // when graph change(position change or add/delete new node)
             // should mark related object dirty.
             // @ts-ignore
-            this.viewport.children.map(function (layer) { return _this.cull.addList(layer.children); });
+            // (this.viewport.children as Container[]).map((layer) => this.cull.addList(layer.children));
         };
         PixiGraph.prototype.createNode = function (nodeKey, nodeAttributes) {
             var _this = this;
@@ -46114,24 +46158,29 @@ if (vType < 0.5) {
             this.updateEdgeStyle(edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes);
         };
         PixiGraph.prototype.updateEdgeStyle = function (edgeKey, edgeAttributes, _sourceNodeKey, _targetNodeKey, sourceNodeAttributes, targetNodeAttributes) {
+            var isDirected = this.graph.isDirected(edgeKey);
             var edge = this.edgeKeyToEdgeObject.get(edgeKey);
             // const sourceNode = this.nodeKeyToNodeObject.get(sourceNodeKey)!;
             // const targetNode = this.nodeKeyToNodeObject.get(targetNodeKey)!;
             var sourceNodePosition = { x: sourceNodeAttributes.x, y: sourceNodeAttributes.y };
             var targetNodePosition = { x: targetNodeAttributes.x, y: targetNodeAttributes.y };
-            edge.updatePosition(sourceNodePosition, targetNodePosition);
+            var nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node];
+            var nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, targetNodeAttributes);
+            edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle);
             var edgeStyleDefinitions = [DEFAULT_STYLE.edge, this.style.edge, edge.hovered ? this.hoverStyle.edge : undefined];
             var edgeStyle = resolveStyleDefinitions(edgeStyleDefinitions, edgeAttributes);
-            edge.updateStyle(edgeStyle, this.textureCache);
+            edge.updateStyle(edgeStyle, this.textureCache, isDirected);
         };
         PixiGraph.prototype.updateGraphVisibility = function () {
+            // culling todo(rotation cull have bug)
+            // https://github.com/davidfig/pixi-cull/issues/2
+            // this.cull.cull(this.viewport.getVisibleBounds(), false);
+            // should refer https://github.com/ShukantPal/pixi-essentials/tree/master/packages/cull
             var _this = this;
-            // culling
-            this.cull.cull(this.viewport.getVisibleBounds(), false);
             // original culling have performance issue.
-            // const cull = new Cull();
-            // cull.addAll((this.viewport.children as Container[]).map((layer) => layer.children).flat());
-            // cull.cull(this.app.renderer.screen);
+            var cull = new Cull();
+            cull.addAll(this.viewport.children.map(function (layer) { return layer.children; }).flat());
+            cull.cull(this.app.renderer.screen);
             // console.log(
             //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === true).length,
             //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === false).length

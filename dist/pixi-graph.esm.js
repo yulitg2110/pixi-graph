@@ -8,7 +8,7 @@ import { InteractionManager } from '@pixi/interaction';
 import { Container } from '@pixi/display';
 import { Rectangle, Circle, Point } from '@pixi/math';
 import { Viewport } from 'pixi-viewport';
-import { Simple } from 'pixi-cull';
+import { Cull } from '@pixi-essentials/cull';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import deepmerge from 'deepmerge';
 import { SCALE_MODES } from '@pixi/constants';
@@ -18,7 +18,7 @@ import '@pixi/mixin-get-child-by-name';
 import { rgb2hex } from '@pixi/utils';
 import rgba from 'color-rgba';
 
-var WHITE$1 = 0xffffff;
+var WHITE$2 = 0xffffff;
 var TextType;
 (function (TextType) {
     TextType["TEXT"] = "TEXT";
@@ -33,7 +33,7 @@ function textToPixi(type, content, style) {
         text = new Text(content, {
             fontFamily: style.fontFamily,
             fontSize: style.fontSize,
-            fill: WHITE$1,
+            fill: WHITE$2,
         });
     }
     else if (type === TextType.BITMAP_TEXT) {
@@ -150,8 +150,8 @@ function colorToPixi(color) {
     return [pixiColor, alpha];
 }
 
-var DELIMETER$1 = '::';
-var WHITE = 0xffffff;
+var DELIMETER$2 = '::';
+var WHITE$1 = 0xffffff;
 var NODE_CIRCLE = 'NODE_CIRCLE';
 var NODE_CIRCLE_BORDER = 'NODE_CIRCLE_BORDER';
 var NODE_ICON = 'NODE_ICON';
@@ -177,17 +177,17 @@ function createNode(nodeGfx) {
 function updateNodeStyle(nodeGfx, nodeStyle, textureCache) {
     var _a, _b;
     var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
-    var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$1);
+    var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$2);
     var nodeCircleTexture = textureCache.get(nodeCircleTextureKey, function () {
         var graphics = new SmoothGraphics();
-        graphics.beginFill(WHITE, 1.0, true);
+        graphics.beginFill(WHITE$1, 1.0, true);
         graphics.drawCircle(nodeStyle.size, nodeStyle.size, nodeStyle.size);
         return graphics;
     });
-    var nodeCircleBorderTextureKey = [NODE_CIRCLE_BORDER, nodeStyle.size, nodeStyle.border.width].join(DELIMETER$1);
+    var nodeCircleBorderTextureKey = [NODE_CIRCLE_BORDER, nodeStyle.size, nodeStyle.border.width].join(DELIMETER$2);
     var nodeCircleBorderTexture = textureCache.get(nodeCircleBorderTextureKey, function () {
         var graphics = new SmoothGraphics();
-        graphics.lineStyle(nodeStyle.border.width, WHITE);
+        graphics.lineStyle(nodeStyle.border.width, WHITE$1);
         graphics.drawCircle(nodeOuterSize, nodeOuterSize, nodeStyle.size);
         return graphics;
     });
@@ -221,7 +221,7 @@ function updateNodeVisibility(nodeGfx, zoomStep) {
     }
 }
 
-var DELIMETER = '::';
+var DELIMETER$1 = '::';
 var NODE_LABEL_BACKGROUND = 'NODE_LABEL_BACKGROUND';
 var NODE_LABEL_TEXT = 'NODE_LABEL_TEXT';
 function createNodeLabel(nodeLabelGfx) {
@@ -244,7 +244,7 @@ function updateNodeLabelStyle(nodeLabelGfx, nodeStyle, textureCache) {
         nodeStyle.label.fontFamily,
         nodeStyle.label.fontSize,
         nodeStyle.label.content,
-    ].join(DELIMETER);
+    ].join(DELIMETER$1);
     var nodeLabelTextTexture = textureCache.get(nodeLabelTextTextureKey, function () {
         var text = textToPixi(nodeStyle.label.type, nodeStyle.label.content, {
             fontFamily: nodeStyle.label.fontFamily,
@@ -341,25 +341,66 @@ var PixiNode = /** @class */ (function (_super) {
     return PixiNode;
 }(TypedEmitter));
 
+var DELIMETER = '::';
+var WHITE = 0xffffff;
 var EDGE_LINE = 'EDGE_LINE';
+var EDGE_ARROW = 'EDGE_ARROW';
+var ARROW_SIZE = 5;
 function createEdge(edgeGfx) {
     // edgeGfx -> edgeLine
     var edgeLine = new Sprite(Texture.WHITE);
     edgeLine.name = EDGE_LINE;
     edgeLine.anchor.set(0.5);
     edgeGfx.addChild(edgeLine);
+    // edgeGfx -> edgeArrow
+    var edgeArrow = new Sprite();
+    edgeArrow.name = EDGE_ARROW;
+    edgeArrow.anchor.set(0.5);
+    edgeGfx.addChild(edgeArrow);
 }
-function updateEdgeStyle(edgeGfx, edgeStyle, _textureCache) {
-    var _a;
+function updatePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle) {
+    var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
+    // edgeGfx -> edgeLine
+    var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
+    var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
+    // reduce line length
+    edgeLine.height = length - nodeOuterSize * 2 - 2;
+    // edgeGfx -> edgeArrow
+    var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
+    edgeArrow.y = length / 2 - nodeOuterSize - ARROW_SIZE;
+}
+function updateEdgeStyle(edgeGfx, edgeStyle, textureCache, isDirected) {
+    var _a, _b;
     // edgeGfx -> edgeLine
     var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
     edgeLine.width = edgeStyle.width;
     _a = colorToPixi(edgeStyle.color), edgeLine.tint = _a[0], edgeLine.alpha = _a[1];
+    if (isDirected) {
+        // edgeGfx -> edgeArrow
+        var edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER);
+        var edgeArrowTexture = textureCache.get(edgeArrowTextureKey, function () {
+            var graphics = new SmoothGraphics();
+            graphics.beginFill(WHITE, 1.0, true);
+            graphics.moveTo(0, ARROW_SIZE);
+            graphics.lineTo(ARROW_SIZE, -ARROW_SIZE);
+            graphics.lineTo(-ARROW_SIZE, -ARROW_SIZE);
+            graphics.lineTo(0, ARROW_SIZE);
+            graphics.closePath();
+            graphics.endFill();
+            return graphics;
+        });
+        var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
+        edgeArrow.texture = edgeArrowTexture;
+        _b = colorToPixi(edgeStyle.color), edgeArrow.tint = _b[0], edgeArrow.alpha = _b[1];
+    }
 }
 function updateEdgeVisibility(edgeGfx, zoomStep) {
     // edgeGfx -> edgeLine
     var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
     edgeLine.visible = zoomStep >= 1;
+    // edgeGFX -> edgeArrow
+    var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
+    edgeArrow.visible = zoomStep >= 3;
 }
 
 var PixiEdge = /** @class */ (function (_super) {
@@ -390,19 +431,18 @@ var PixiEdge = /** @class */ (function (_super) {
         createEdge(edgeGfx);
         return edgeGfx;
     };
-    PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition) {
+    PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition, nodeStyle) {
         var position = {
             x: (sourceNodePosition.x + targetNodePosition.x) / 2,
             y: (sourceNodePosition.y + targetNodePosition.y) / 2,
         };
         var rotation = -Math.atan2(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
-        var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
         this.edgeGfx.position.copyFrom(position);
         this.edgeGfx.rotation = rotation;
-        this.edgeGfx.height = length;
+        updatePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle);
     };
-    PixiEdge.prototype.updateStyle = function (edgeStyle, textureCache) {
-        updateEdgeStyle(this.edgeGfx, edgeStyle);
+    PixiEdge.prototype.updateStyle = function (edgeStyle, textureCache, isDirected) {
+        updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected);
     };
     PixiEdge.prototype.updateVisibility = function (zoomStep) {
         updateEdgeVisibility(this.edgeGfx, zoomStep);
@@ -478,9 +518,9 @@ var PixiGraph = /** @class */ (function (_super) {
             autoDensity: true,
         });
         _this.container.appendChild(_this.app.view);
-        _this.cull = new Simple({
-            dirtyTest: true,
-        });
+        // this.cull = new Simple({
+        //   dirtyTest: true,
+        // });
         _this.app.renderer.plugins.interaction.moveWhenInside = true;
         _this.app.view.addEventListener('wheel', function (event) {
             event.preventDefault();
@@ -733,14 +773,13 @@ var PixiGraph = /** @class */ (function (_super) {
         this.mousedownEdgeKey = null;
     };
     PixiGraph.prototype.createGraph = function () {
-        var _this = this;
         this.graph.forEachNode(this.createNode.bind(this));
         this.graph.forEachEdge(this.createEdge.bind(this));
         // todo
         // when graph change(position change or add/delete new node)
         // should mark related object dirty.
         // @ts-ignore
-        this.viewport.children.map(function (layer) { return _this.cull.addList(layer.children); });
+        // (this.viewport.children as Container[]).map((layer) => this.cull.addList(layer.children));
     };
     PixiGraph.prototype.createNode = function (nodeKey, nodeAttributes) {
         var _this = this;
@@ -844,24 +883,29 @@ var PixiGraph = /** @class */ (function (_super) {
         this.updateEdgeStyle(edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes);
     };
     PixiGraph.prototype.updateEdgeStyle = function (edgeKey, edgeAttributes, _sourceNodeKey, _targetNodeKey, sourceNodeAttributes, targetNodeAttributes) {
+        var isDirected = this.graph.isDirected(edgeKey);
         var edge = this.edgeKeyToEdgeObject.get(edgeKey);
         // const sourceNode = this.nodeKeyToNodeObject.get(sourceNodeKey)!;
         // const targetNode = this.nodeKeyToNodeObject.get(targetNodeKey)!;
         var sourceNodePosition = { x: sourceNodeAttributes.x, y: sourceNodeAttributes.y };
         var targetNodePosition = { x: targetNodeAttributes.x, y: targetNodeAttributes.y };
-        edge.updatePosition(sourceNodePosition, targetNodePosition);
+        var nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node];
+        var nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, targetNodeAttributes);
+        edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle);
         var edgeStyleDefinitions = [DEFAULT_STYLE.edge, this.style.edge, edge.hovered ? this.hoverStyle.edge : undefined];
         var edgeStyle = resolveStyleDefinitions(edgeStyleDefinitions, edgeAttributes);
-        edge.updateStyle(edgeStyle, this.textureCache);
+        edge.updateStyle(edgeStyle, this.textureCache, isDirected);
     };
     PixiGraph.prototype.updateGraphVisibility = function () {
+        // culling todo(rotation cull have bug)
+        // https://github.com/davidfig/pixi-cull/issues/2
+        // this.cull.cull(this.viewport.getVisibleBounds(), false);
+        // should refer https://github.com/ShukantPal/pixi-essentials/tree/master/packages/cull
         var _this = this;
-        // culling
-        this.cull.cull(this.viewport.getVisibleBounds(), false);
         // original culling have performance issue.
-        // const cull = new Cull();
-        // cull.addAll((this.viewport.children as Container[]).map((layer) => layer.children).flat());
-        // cull.cull(this.app.renderer.screen);
+        var cull = new Cull();
+        cull.addAll(this.viewport.children.map(function (layer) { return layer.children; }).flat());
+        cull.cull(this.app.renderer.screen);
         // console.log(
         //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === true).length,
         //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === false).length

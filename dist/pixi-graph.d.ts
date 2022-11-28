@@ -88,7 +88,6 @@ declare class PixiGraph<NodeAttributes extends BaseNodeAttributes = BaseNodeAttr
     private app;
     private textureCache;
     private viewport;
-    private cull;
     private resizeObserver;
     private edgeLayer;
     private frontEdgeLayer;

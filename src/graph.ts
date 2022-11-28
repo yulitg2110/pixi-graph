@@ -8,8 +8,8 @@ import { Container } from '@pixi/display';
 import { Point, IPointData } from '@pixi/math';
 import { IAddOptions } from '@pixi/loaders';
 import { Viewport } from 'pixi-viewport';
-// import { Cull } from '@pixi-essentials/cull';
-import { Simple } from 'pixi-cull';
+import { Cull } from '@pixi-essentials/cull';
+// import { Simple } from 'pixi-cull';
 import { AbstractGraph } from 'graphology-types';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { GraphStyleDefinition, resolveStyleDefinitions } from './utils/style';
@@ -92,7 +92,7 @@ export class PixiGraph<
   private app: Application;
   private textureCache: TextureCache;
   private viewport: Viewport;
-  private cull: Simple;
+  // private cull: Simple;
   private resizeObserver: ResizeObserver;
   private edgeLayer: Container;
   private frontEdgeLayer: Container;
@@ -143,9 +143,9 @@ export class PixiGraph<
       autoDensity: true,
     });
     this.container.appendChild(this.app.view);
-    this.cull = new Simple({
-      dirtyTest: true,
-    });
+    // this.cull = new Simple({
+    //   dirtyTest: true,
+    // });
 
     this.app.renderer.plugins.interaction.moveWhenInside = true;
     this.app.view.addEventListener('wheel', (event) => {
@@ -452,7 +452,7 @@ export class PixiGraph<
     // when graph change(position change or add/delete new node)
     // should mark related object dirty.
     // @ts-ignore
-    (this.viewport.children as Container[]).map((layer) => this.cull.addList(layer.children));
+    // (this.viewport.children as Container[]).map((layer) => this.cull.addList(layer.children));
   }
 
   private createNode(nodeKey: string, nodeAttributes: NodeAttributes) {
@@ -596,27 +596,35 @@ export class PixiGraph<
     sourceNodeAttributes: NodeAttributes,
     targetNodeAttributes: NodeAttributes
   ) {
+    const isDirected = this.graph.isDirected(edgeKey);
+
     const edge = this.edgeKeyToEdgeObject.get(edgeKey)!;
     // const sourceNode = this.nodeKeyToNodeObject.get(sourceNodeKey)!;
     // const targetNode = this.nodeKeyToNodeObject.get(targetNodeKey)!;
 
     const sourceNodePosition = { x: sourceNodeAttributes.x, y: sourceNodeAttributes.y };
     const targetNodePosition = { x: targetNodeAttributes.x, y: targetNodeAttributes.y };
-    edge.updatePosition(sourceNodePosition, targetNodePosition);
+
+    const nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node];
+    const nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, targetNodeAttributes);
+
+    edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle);
 
     const edgeStyleDefinitions = [DEFAULT_STYLE.edge, this.style.edge, edge.hovered ? this.hoverStyle.edge : undefined];
     const edgeStyle = resolveStyleDefinitions(edgeStyleDefinitions, edgeAttributes);
-    edge.updateStyle(edgeStyle, this.textureCache);
+    edge.updateStyle(edgeStyle, this.textureCache, isDirected);
   }
 
   private updateGraphVisibility() {
-    // culling
-    this.cull.cull(this.viewport.getVisibleBounds(), false);
+    // culling todo(rotation cull have bug)
+    // https://github.com/davidfig/pixi-cull/issues/2
+    // this.cull.cull(this.viewport.getVisibleBounds(), false);
+    // should refer https://github.com/ShukantPal/pixi-essentials/tree/master/packages/cull
 
     // original culling have performance issue.
-    // const cull = new Cull();
-    // cull.addAll((this.viewport.children as Container[]).map((layer) => layer.children).flat());
-    // cull.cull(this.app.renderer.screen);
+    const cull = new Cull();
+    cull.addAll((this.viewport.children as Container[]).map((layer) => layer.children).flat());
+    cull.cull(this.app.renderer.screen);
 
     // console.log(
     //   Array.from((cull as any)._targetList as Set<DisplayObject>).filter(x => x.visible === true).length,
