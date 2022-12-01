@@ -22,6 +22,7 @@ export class PixiNode extends TypedEmitter<PixiNodeEvents> {
   nodeLabelPlaceholderGfx: Container;
 
   hovered: boolean = false;
+  selected: boolean = false;
 
   constructor() {
     super();

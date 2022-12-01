@@ -12,7 +12,7 @@ import { Cull } from '@pixi-essentials/cull';
 // import { Simple } from 'pixi-cull';
 import { AbstractGraph } from 'graphology-types';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { GraphStyleDefinition, resolveStyleDefinitions } from './utils/style';
+import { GraphStyleDefinition, NodeStyleDefinition, resolveStyleDefinitions } from './utils/style';
 import { TextType } from './utils/text';
 import { BaseNodeAttributes, BaseEdgeAttributes } from './attributes';
 import { TextureCache } from './texture-cache';
@@ -61,6 +61,7 @@ export interface GraphOptions<
   graph: AbstractGraph<NodeAttributes, EdgeAttributes>;
   style: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
   hoverStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
+  selectStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
   resources?: IAddOptions[];
 }
 
@@ -87,6 +88,7 @@ export class PixiGraph<
   graph: AbstractGraph<NodeAttributes, EdgeAttributes>;
   style: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
   hoverStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
+  selectStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
   resources?: IAddOptions[];
 
   private app: Application;
@@ -102,6 +104,7 @@ export class PixiGraph<
   private frontNodeLabelLayer: Container;
   private nodeKeyToNodeObject = new Map<string, PixiNode>();
   private edgeKeyToEdgeObject = new Map<string, PixiEdge>();
+  private selectNodeKeys = new Set<string>();
 
   private mousedownNodeKey: string | null = null;
   private mousedownEdgeKey: string | null = null;
@@ -126,6 +129,7 @@ export class PixiGraph<
     this.graph = options.graph;
     this.style = options.style;
     this.hoverStyle = options.hoverStyle;
+    this.selectStyle = options.selectStyle;
     this.resources = options.resources;
 
     if (!(this.container instanceof HTMLElement)) {
@@ -166,6 +170,15 @@ export class PixiGraph<
       .decelerate()
       .clampZoom({ maxScale: 2 });
     this.app.stage.addChild(this.viewport);
+    this.viewport.on('mouseup', (event: MouseEvent) => {
+      // @ts-ignore
+      if (event.target === this.viewport) {
+        this.selectNodeKeys.forEach((nodeKey) => {
+          this.unselectNode(nodeKey);
+        });
+        this.selectNodeKeys.clear();
+      }
+    });
 
     // create layers
     this.edgeLayer = new Container();
@@ -330,48 +343,89 @@ export class PixiGraph<
     this.graph.forEachEdge(this.updateEdgeStyle.bind(this));
   }
 
-  private hoverNode(nodeKey: string) {
+  private setNodeStatus(nodeKey: string, status: 'hovered' | 'selected') {
     const node = this.nodeKeyToNodeObject.get(nodeKey)!;
-    if (node.hovered) {
-      return;
+
+    // selected > hovered
+    if (status === 'hovered' && !node.selected) {
+      if (node.hovered) {
+        return;
+      }
+
+      // update style
+      node.hovered = true;
+    } else if (status === 'selected') {
+      if (node.selected) {
+        return;
+      }
+
+      node.selected = true;
     }
 
-    // update style
-    node.hovered = true;
     this.updateNodeStyleByKey(nodeKey);
 
     // move to front
-    const nodeIndex = this.nodeLayer.getChildIndex(node.nodeGfx);
-    this.nodeLayer.removeChildAt(nodeIndex);
-    this.nodeLabelLayer.removeChildAt(nodeIndex);
-    this.frontNodeLayer.removeChildAt(nodeIndex);
-    this.frontNodeLabelLayer.removeChildAt(nodeIndex);
-    this.nodeLayer.addChild(node.nodePlaceholderGfx);
-    this.nodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
-    this.frontNodeLayer.addChild(node.nodeGfx);
-    this.frontNodeLabelLayer.addChild(node.nodeLabelGfx);
+    const nodeIndex = this.nodeLayer.children.indexOf(node.nodeGfx);
+    // hover then select, the select can not find
+    if (nodeIndex >= 0) {
+      this.nodeLayer.removeChildAt(nodeIndex);
+      this.nodeLabelLayer.removeChildAt(nodeIndex);
+      this.frontNodeLayer.removeChildAt(nodeIndex);
+      this.frontNodeLabelLayer.removeChildAt(nodeIndex);
+      this.nodeLayer.addChild(node.nodePlaceholderGfx);
+      this.nodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
+      this.frontNodeLayer.addChild(node.nodeGfx);
+      this.frontNodeLabelLayer.addChild(node.nodeLabelGfx);
+    }
+  }
+
+  private unsetNodeStatus(nodeKey: string, status: 'hovered' | 'selected') {
+    const node = this.nodeKeyToNodeObject.get(nodeKey)!;
+
+    if (status === 'hovered' && !node.selected) {
+      if (!node.hovered) {
+        return;
+      }
+
+      // update style
+      node.hovered = false;
+    } else if (status === 'selected') {
+      if (!node.selected) {
+        return;
+      }
+
+      node.selected = false;
+    }
+    this.updateNodeStyleByKey(nodeKey);
+
+    // move to front
+    if (!node.selected && !node.hovered) {
+      const nodeIndex = this.frontNodeLayer.getChildIndex(node.nodeGfx);
+      this.nodeLayer.removeChildAt(nodeIndex);
+      this.nodeLabelLayer.removeChildAt(nodeIndex);
+      this.frontNodeLayer.removeChildAt(nodeIndex);
+      this.frontNodeLabelLayer.removeChildAt(nodeIndex);
+      this.nodeLayer.addChild(node.nodeGfx);
+      this.nodeLabelLayer.addChild(node.nodeLabelGfx);
+      this.frontNodeLayer.addChild(node.nodePlaceholderGfx);
+      this.frontNodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
+    }
+  }
+
+  private selectNode(nodeKey: string) {
+    this.setNodeStatus(nodeKey, 'selected');
+  }
+
+  private unselectNode(nodeKey: string) {
+    this.unsetNodeStatus(nodeKey, 'selected');
+  }
+
+  private hoverNode(nodeKey: string) {
+    this.setNodeStatus(nodeKey, 'hovered');
   }
 
   private unhoverNode(nodeKey: string) {
-    const node = this.nodeKeyToNodeObject.get(nodeKey)!;
-    if (!node.hovered) {
-      return;
-    }
-
-    // update style
-    node.hovered = false;
-    this.updateNodeStyleByKey(nodeKey);
-
-    // move to front
-    const nodeIndex = this.frontNodeLayer.getChildIndex(node.nodeGfx);
-    this.nodeLayer.removeChildAt(nodeIndex);
-    this.nodeLabelLayer.removeChildAt(nodeIndex);
-    this.frontNodeLayer.removeChildAt(nodeIndex);
-    this.frontNodeLabelLayer.removeChildAt(nodeIndex);
-    this.nodeLayer.addChild(node.nodeGfx);
-    this.nodeLabelLayer.addChild(node.nodeLabelGfx);
-    this.frontNodeLayer.addChild(node.nodePlaceholderGfx);
-    this.frontNodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
+    this.unsetNodeStatus(nodeKey, 'hovered');
   }
 
   private hoverEdge(edgeKey: string) {
@@ -478,10 +532,23 @@ export class PixiGraph<
       this.emit('nodeMousedown', event, nodeKey);
     });
     node.on('mouseup', (event: MouseEvent) => {
+      event.stopPropagation();
       this.emit('nodeMouseup', event, nodeKey);
       // why native click event doesn't work?
       if (this.mousedownNodeKey === nodeKey) {
         this.emit('nodeClick', event, nodeKey);
+        if (event.metaKey || event.ctrlKey || event.shiftKey) {
+          this.selectNodeKeys.add(nodeKey);
+          this.selectNode(nodeKey);
+        } else {
+          this.selectNodeKeys.forEach((nodeKey) => {
+            this.unselectNode(nodeKey);
+          });
+          this.selectNodeKeys.clear();
+
+          this.selectNodeKeys.add(nodeKey);
+          this.selectNode(nodeKey);
+        }
       }
     });
     this.nodeLayer.addChild(node.nodeGfx);
@@ -567,7 +634,14 @@ export class PixiGraph<
     const nodePosition = { x: nodeAttributes.x, y: nodeAttributes.y };
     node.updatePosition(nodePosition);
 
-    const nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node, node.hovered ? this.hoverStyle.node : undefined];
+    let stateStyle: NodeStyleDefinition<NodeAttributes> | undefined = undefined;
+    if (node.selected) {
+      stateStyle = this.selectStyle.node;
+    } else if (node.hovered) {
+      stateStyle = this.hoverStyle.node;
+    }
+
+    const nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node, stateStyle];
     const nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, nodeAttributes);
     node.updateStyle(nodeStyle, this.textureCache);
   }
