@@ -395,6 +395,8 @@ export class PixiGraph<
       }
 
       node.selected = false;
+      // clear hovered state when unselect
+      node.hovered = false;
     }
     this.updateNodeStyleByKey(nodeKey);
 
