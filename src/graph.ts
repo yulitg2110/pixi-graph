@@ -68,6 +68,7 @@ export interface GraphOptions<
 interface PixiGraphEvents {
   nodeClick: (event: MouseEvent, nodeKey: string) => void;
   nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
+  nodeRightClick: (event: MouseEvent, nodeKey: string) => void;
   nodeMousemove: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseover: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
@@ -571,6 +572,18 @@ export class PixiGraph<
       this.emit('nodeMousedown', event, nodeKey);
     });
 
+    node.on('rightdown', (_event: MouseEvent) => {
+      this.mouseDownNoMove = true;
+      this.mousedownNodeKey = nodeKey;
+    });
+    node.on('rightup', (event: MouseEvent) => {
+      this.mouseDownNoMove = true;
+      if (this.mousedownNodeKey === nodeKey) {
+        this.emit('nodeRightClick', event, nodeKey);
+      }
+      this.mousedownNodeKey = null;
+    });
+
     const doubleClickDelayMs = 350;
     let previousTapStamp = 0;
 
@@ -606,6 +619,7 @@ export class PixiGraph<
           return;
         }
       }
+      this.mousedownNodeKey = null;
     });
     this.nodeLayer.addChild(node.nodeGfx);
     this.nodeLabelLayer.addChild(node.nodeLabelGfx);

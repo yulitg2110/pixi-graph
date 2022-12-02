@@ -13,6 +13,8 @@ interface PixiNodeEvents {
   mouseout: (event: MouseEvent) => void;
   mousedown: (event: MouseEvent) => void;
   mouseup: (event: MouseEvent) => void;
+  rightdown: (event: MouseEvent) => void;
+  rightup: (event: MouseEvent) => void;
 }
 
 export class PixiNode extends TypedEmitter<PixiNodeEvents> {
@@ -48,6 +50,10 @@ export class PixiNode extends TypedEmitter<PixiNodeEvents> {
       this.emit('mousedown', event.data.originalEvent as MouseEvent)
     );
     nodeGfx.on('mouseup', (event: InteractionEvent) => this.emit('mouseup', event.data.originalEvent as MouseEvent));
+    nodeGfx.on('rightdown', (event: InteractionEvent) =>
+      this.emit('rightdown', event.data.originalEvent as MouseEvent)
+    );
+    nodeGfx.on('rightup', (event: InteractionEvent) => this.emit('rightup', event.data.originalEvent as MouseEvent));
     createNode(nodeGfx);
     return nodeGfx;
   }
@@ -56,21 +62,22 @@ export class PixiNode extends TypedEmitter<PixiNodeEvents> {
     const nodeLabelGfx = new Container();
     nodeLabelGfx.interactive = true;
     nodeLabelGfx.buttonMode = true;
-    nodeLabelGfx.on('mousemove', (event: InteractionEvent) =>
-      this.emit('mousemove', event.data.originalEvent as MouseEvent)
-    );
-    nodeLabelGfx.on('mouseover', (event: InteractionEvent) =>
-      this.emit('mouseover', event.data.originalEvent as MouseEvent)
-    );
-    nodeLabelGfx.on('mouseout', (event: InteractionEvent) =>
-      this.emit('mouseout', event.data.originalEvent as MouseEvent)
-    );
-    nodeLabelGfx.on('mousedown', (event: InteractionEvent) =>
-      this.emit('mousedown', event.data.originalEvent as MouseEvent)
-    );
-    nodeLabelGfx.on('mouseup', (event: InteractionEvent) =>
-      this.emit('mouseup', event.data.originalEvent as MouseEvent)
-    );
+    // disable event no nodeLabel
+    // nodeLabelGfx.on('mousemove', (event: InteractionEvent) =>
+    //   this.emit('mousemove', event.data.originalEvent as MouseEvent)
+    // );
+    // nodeLabelGfx.on('mouseover', (event: InteractionEvent) =>
+    //   this.emit('mouseover', event.data.originalEvent as MouseEvent)
+    // );
+    // nodeLabelGfx.on('mouseout', (event: InteractionEvent) =>
+    //   this.emit('mouseout', event.data.originalEvent as MouseEvent)
+    // );
+    // nodeLabelGfx.on('mousedown', (event: InteractionEvent) =>
+    //   this.emit('mousedown', event.data.originalEvent as MouseEvent)
+    // );
+    // nodeLabelGfx.on('mouseup', (event: InteractionEvent) =>
+    //   this.emit('mouseup', event.data.originalEvent as MouseEvent)
+    // );
     createNodeLabel(nodeLabelGfx);
     return nodeLabelGfx;
   }
