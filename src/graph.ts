@@ -488,6 +488,18 @@ export class PixiGraph<
     this.graph.edges(nodeKey).forEach(this.updateEdgeStyleByKey.bind(this));
   }
 
+  private moveNodebyDelta(nodeKey: string, deltaX: number, deltaY: number) {
+    let x = this.graph.getNodeAttribute(nodeKey, 'x') as number;
+    let y = this.graph.getNodeAttribute(nodeKey, 'y') as number;
+
+    this.graph.setNodeAttribute(nodeKey, 'x', x + deltaX);
+    this.graph.setNodeAttribute(nodeKey, 'y', y + deltaY);
+
+    // update style
+    this.updateNodeStyleByKey(nodeKey);
+    this.graph.edges(nodeKey).forEach(this.updateEdgeStyleByKey.bind(this));
+  }
+
   private enableNodeDragging() {
     this.viewport.pause = true; // disable viewport dragging
 
@@ -500,7 +512,16 @@ export class PixiGraph<
     const worldPosition = this.viewport.toWorld(eventPosition);
 
     if (this.mousedownNodeKey) {
-      this.moveNode(this.mousedownNodeKey, worldPosition);
+      if (this.selectNodeKeys.has(this.mousedownNodeKey)) {
+        let prevX = this.graph.getNodeAttribute(this.mousedownNodeKey, 'x') as number;
+        let preY = this.graph.getNodeAttribute(this.mousedownNodeKey, 'y') as number;
+        let deltaX = worldPosition.x - prevX;
+        let deltaY = worldPosition.y - preY;
+
+        this.selectNodeKeys.forEach((nodeKey) => this.moveNodebyDelta(nodeKey, deltaX, deltaY));
+      } else {
+        this.moveNode(this.mousedownNodeKey, worldPosition);
+      }
     }
   }
 
