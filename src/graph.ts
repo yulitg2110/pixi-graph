@@ -67,6 +67,7 @@ export interface GraphOptions<
 
 interface PixiGraphEvents {
   nodeClick: (event: MouseEvent, nodeKey: string) => void;
+  nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
   nodeMousemove: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseover: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
@@ -569,8 +570,11 @@ export class PixiGraph<
       this.enableNodeDragging();
       this.emit('nodeMousedown', event, nodeKey);
     });
+
+    const doubleClickDelayMs = 350;
+    let previousTapStamp = 0;
+
     node.on('mouseup', (event: MouseEvent) => {
-      event.stopPropagation();
       this.emit('nodeMouseup', event, nodeKey);
       // why native click event doesn't work?
       if (this.mousedownNodeKey === nodeKey && this.mouseDownNoMove) {
@@ -586,6 +590,20 @@ export class PixiGraph<
 
           this.selectNodeKeys.add(nodeKey);
           this.selectNode(nodeKey);
+        }
+
+        // check for double click
+        if (event.shiftKey || event.ctrlKey || event.metaKey) {
+          return;
+        }
+
+        const currentTapStamp = event.timeStamp;
+        const msFromLastTap = currentTapStamp - previousTapStamp;
+
+        previousTapStamp = currentTapStamp;
+        if (msFromLastTap < doubleClickDelayMs) {
+          this.emit('nodeDoubleClick', event, nodeKey);
+          return;
         }
       }
     });
