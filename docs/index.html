@@ -46,6 +46,10 @@
     </div>
 
     <script>
+      document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+      });
+
       // d3.schemeCategory10
       const colors = [
         '#1f77b4',
@@ -132,6 +136,15 @@
           },
         };
 
+        const selectStyle = {
+          node: {
+            border: {
+              width: 8,
+              color: '#ff0000',
+            },
+          },
+        };
+
         const resources = [
           {
             name: 'HelveticaRegular',
@@ -149,9 +162,12 @@
           graph,
           style,
           hoverStyle,
+          selectStyle,
           resources,
         });
         pixiGraph.on('nodeClick', (event, nodeKey) => console.log('nodeClick', event, nodeKey));
+        pixiGraph.on('nodeDoubleClick', (event, nodeKey) => console.log('nodeDoubleClick', event, nodeKey));
+        pixiGraph.on('nodeRightClick', (event, nodeKey) => console.log('nodeRightClick', event, nodeKey));
         pixiGraph.on('nodeMousemove', (event, nodeKey) => console.log('nodeMousemove', event, nodeKey));
         pixiGraph.on('nodeMouseover', (event, nodeKey) => console.log('nodeMouseover', event, nodeKey));
         pixiGraph.on('nodeMouseout', (event, nodeKey) => console.log('nodeMouseout', event, nodeKey));
@@ -274,7 +290,7 @@
         let serializedGraph;
         const exportGraph = () => {
           serializedGraph = graph.export();
-          console.log(serializedGraph);
+          // console.log(serializedGraph);
         };
         document.getElementById('export').addEventListener('click', exportGraph);
 
