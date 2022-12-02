@@ -63,10 +63,13 @@ interface GraphOptions<NodeAttributes extends BaseNodeAttributes = BaseNodeAttri
     graph: AbstractGraph<NodeAttributes, EdgeAttributes>;
     style: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
     hoverStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
+    selectStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
     resources?: IAddOptions[];
 }
 interface PixiGraphEvents {
     nodeClick: (event: MouseEvent, nodeKey: string) => void;
+    nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
+    nodeRightClick: (event: MouseEvent, nodeKey: string) => void;
     nodeMousemove: (event: MouseEvent, nodeKey: string) => void;
     nodeMouseover: (event: MouseEvent, nodeKey: string) => void;
     nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
@@ -84,6 +87,7 @@ declare class PixiGraph<NodeAttributes extends BaseNodeAttributes = BaseNodeAttr
     graph: AbstractGraph<NodeAttributes, EdgeAttributes>;
     style: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
     hoverStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
+    selectStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
     resources?: IAddOptions[];
     private app;
     private textureCache;
@@ -97,8 +101,10 @@ declare class PixiGraph<NodeAttributes extends BaseNodeAttributes = BaseNodeAttr
     private frontNodeLabelLayer;
     private nodeKeyToNodeObject;
     private edgeKeyToEdgeObject;
+    private selectNodeKeys;
     private mousedownNodeKey;
     private mousedownEdgeKey;
+    private mouseDownNoMove;
     private onGraphNodeAddedBound;
     private onGraphEdgeAddedBound;
     private onGraphNodeDroppedBound;
@@ -127,11 +133,16 @@ declare class PixiGraph<NodeAttributes extends BaseNodeAttributes = BaseNodeAttr
     private onGraphEdgeAttributesUpdated;
     private onGraphEachNodeAttributesUpdated;
     private onGraphEachEdgeAttributesUpdated;
+    private setNodeStatus;
+    private unsetNodeStatus;
+    private selectNode;
+    private unselectNode;
     private hoverNode;
     private unhoverNode;
     private hoverEdge;
     private unhoverEdge;
     private moveNode;
+    private moveNodebyDelta;
     private enableNodeDragging;
     private onDocumentMouseMove;
     private onDocumentMouseUp;

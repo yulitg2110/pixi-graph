@@ -287,6 +287,7 @@ var PixiNode = /** @class */ (function (_super) {
     function PixiNode() {
         var _this = _super.call(this) || this;
         _this.hovered = false;
+        _this.selected = false;
         _this.nodeGfx = _this.createNode();
         _this.nodeLabelGfx = _this.createNodeLabel();
         _this.nodePlaceholderGfx = new display.Container();
@@ -309,29 +310,33 @@ var PixiNode = /** @class */ (function (_super) {
             return _this.emit('mousedown', event.data.originalEvent);
         });
         nodeGfx.on('mouseup', function (event) { return _this.emit('mouseup', event.data.originalEvent); });
+        nodeGfx.on('rightdown', function (event) {
+            return _this.emit('rightdown', event.data.originalEvent);
+        });
+        nodeGfx.on('rightup', function (event) { return _this.emit('rightup', event.data.originalEvent); });
         createNode(nodeGfx);
         return nodeGfx;
     };
     PixiNode.prototype.createNodeLabel = function () {
-        var _this = this;
         var nodeLabelGfx = new display.Container();
         nodeLabelGfx.interactive = true;
         nodeLabelGfx.buttonMode = true;
-        nodeLabelGfx.on('mousemove', function (event) {
-            return _this.emit('mousemove', event.data.originalEvent);
-        });
-        nodeLabelGfx.on('mouseover', function (event) {
-            return _this.emit('mouseover', event.data.originalEvent);
-        });
-        nodeLabelGfx.on('mouseout', function (event) {
-            return _this.emit('mouseout', event.data.originalEvent);
-        });
-        nodeLabelGfx.on('mousedown', function (event) {
-            return _this.emit('mousedown', event.data.originalEvent);
-        });
-        nodeLabelGfx.on('mouseup', function (event) {
-            return _this.emit('mouseup', event.data.originalEvent);
-        });
+        // disable event no nodeLabel
+        // nodeLabelGfx.on('mousemove', (event: InteractionEvent) =>
+        //   this.emit('mousemove', event.data.originalEvent as MouseEvent)
+        // );
+        // nodeLabelGfx.on('mouseover', (event: InteractionEvent) =>
+        //   this.emit('mouseover', event.data.originalEvent as MouseEvent)
+        // );
+        // nodeLabelGfx.on('mouseout', (event: InteractionEvent) =>
+        //   this.emit('mouseout', event.data.originalEvent as MouseEvent)
+        // );
+        // nodeLabelGfx.on('mousedown', (event: InteractionEvent) =>
+        //   this.emit('mousedown', event.data.originalEvent as MouseEvent)
+        // );
+        // nodeLabelGfx.on('mouseup', (event: InteractionEvent) =>
+        //   this.emit('mouseup', event.data.originalEvent as MouseEvent)
+        // );
         createNodeLabel(nodeLabelGfx);
         return nodeLabelGfx;
     };
@@ -495,8 +500,10 @@ var PixiGraph = /** @class */ (function (_super) {
         var _this = _super.call(this) || this;
         _this.nodeKeyToNodeObject = new Map();
         _this.edgeKeyToEdgeObject = new Map();
+        _this.selectNodeKeys = new Set();
         _this.mousedownNodeKey = null;
         _this.mousedownEdgeKey = null;
+        _this.mouseDownNoMove = false;
         _this.onGraphNodeAddedBound = _this.onGraphNodeAdded.bind(_this);
         _this.onGraphEdgeAddedBound = _this.onGraphEdgeAdded.bind(_this);
         _this.onGraphNodeDroppedBound = _this.onGraphNodeDropped.bind(_this);
@@ -513,6 +520,7 @@ var PixiGraph = /** @class */ (function (_super) {
         _this.graph = options.graph;
         _this.style = options.style;
         _this.hoverStyle = options.hoverStyle;
+        _this.selectStyle = options.selectStyle;
         _this.resources = options.resources;
         if (!(_this.container instanceof HTMLElement)) {
             throw new Error('container should be a HTMLElement');
@@ -547,6 +555,27 @@ var PixiGraph = /** @class */ (function (_super) {
             .decelerate()
             .clampZoom({ maxScale: 2 });
         _this.app.stage.addChild(_this.viewport);
+        _this.viewport.on('mousemove', function (event) {
+            // @ts-ignore
+            if (event.target === _this.viewport) {
+                _this.mouseDownNoMove = false;
+            }
+        });
+        _this.viewport.on('mousedown', function (event) {
+            // @ts-ignore
+            if (event.target === _this.viewport) {
+                _this.mouseDownNoMove = true;
+            }
+        });
+        _this.viewport.on('mouseup', function (event) {
+            // @ts-ignore
+            if (event.target === _this.viewport && _this.mouseDownNoMove) {
+                _this.selectNodeKeys.forEach(function (nodeKey) {
+                    _this.unselectNode(nodeKey);
+                });
+                _this.selectNodeKeys.clear();
+            }
+        });
         // create layers
         _this.edgeLayer = new display.Container();
         _this.frontEdgeLayer = new display.Container();
@@ -688,43 +717,79 @@ var PixiGraph = /** @class */ (function (_super) {
     PixiGraph.prototype.onGraphEachEdgeAttributesUpdated = function () {
         this.graph.forEachEdge(this.updateEdgeStyle.bind(this));
     };
-    PixiGraph.prototype.hoverNode = function (nodeKey) {
+    PixiGraph.prototype.setNodeStatus = function (nodeKey, status) {
         var node = this.nodeKeyToNodeObject.get(nodeKey);
-        if (node.hovered) {
-            return;
+        // selected > hovered
+        if (status === 'hovered' && !node.selected) {
+            if (node.hovered) {
+                return;
+            }
+            // update style
+            node.hovered = true;
         }
-        // update style
-        node.hovered = true;
+        else if (status === 'selected') {
+            if (node.selected) {
+                return;
+            }
+            node.selected = true;
+        }
         this.updateNodeStyleByKey(nodeKey);
         // move to front
-        var nodeIndex = this.nodeLayer.getChildIndex(node.nodeGfx);
-        this.nodeLayer.removeChildAt(nodeIndex);
-        this.nodeLabelLayer.removeChildAt(nodeIndex);
-        this.frontNodeLayer.removeChildAt(nodeIndex);
-        this.frontNodeLabelLayer.removeChildAt(nodeIndex);
-        this.nodeLayer.addChild(node.nodePlaceholderGfx);
-        this.nodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
-        this.frontNodeLayer.addChild(node.nodeGfx);
-        this.frontNodeLabelLayer.addChild(node.nodeLabelGfx);
+        var nodeIndex = this.nodeLayer.children.indexOf(node.nodeGfx);
+        // hover then select, the select can not find
+        if (nodeIndex >= 0) {
+            this.nodeLayer.removeChildAt(nodeIndex);
+            this.nodeLabelLayer.removeChildAt(nodeIndex);
+            this.frontNodeLayer.removeChildAt(nodeIndex);
+            this.frontNodeLabelLayer.removeChildAt(nodeIndex);
+            this.nodeLayer.addChild(node.nodePlaceholderGfx);
+            this.nodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
+            this.frontNodeLayer.addChild(node.nodeGfx);
+            this.frontNodeLabelLayer.addChild(node.nodeLabelGfx);
+        }
+    };
+    PixiGraph.prototype.unsetNodeStatus = function (nodeKey, status) {
+        var node = this.nodeKeyToNodeObject.get(nodeKey);
+        if (status === 'hovered' && !node.selected) {
+            if (!node.hovered) {
+                return;
+            }
+            // update style
+            node.hovered = false;
+        }
+        else if (status === 'selected') {
+            if (!node.selected) {
+                return;
+            }
+            node.selected = false;
+            // clear hovered state when unselect
+            node.hovered = false;
+        }
+        this.updateNodeStyleByKey(nodeKey);
+        // move to front
+        if (!node.selected && !node.hovered) {
+            var nodeIndex = this.frontNodeLayer.getChildIndex(node.nodeGfx);
+            this.nodeLayer.removeChildAt(nodeIndex);
+            this.nodeLabelLayer.removeChildAt(nodeIndex);
+            this.frontNodeLayer.removeChildAt(nodeIndex);
+            this.frontNodeLabelLayer.removeChildAt(nodeIndex);
+            this.nodeLayer.addChild(node.nodeGfx);
+            this.nodeLabelLayer.addChild(node.nodeLabelGfx);
+            this.frontNodeLayer.addChild(node.nodePlaceholderGfx);
+            this.frontNodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
+        }
+    };
+    PixiGraph.prototype.selectNode = function (nodeKey) {
+        this.setNodeStatus(nodeKey, 'selected');
+    };
+    PixiGraph.prototype.unselectNode = function (nodeKey) {
+        this.unsetNodeStatus(nodeKey, 'selected');
+    };
+    PixiGraph.prototype.hoverNode = function (nodeKey) {
+        this.setNodeStatus(nodeKey, 'hovered');
     };
     PixiGraph.prototype.unhoverNode = function (nodeKey) {
-        var node = this.nodeKeyToNodeObject.get(nodeKey);
-        if (!node.hovered) {
-            return;
-        }
-        // update style
-        node.hovered = false;
-        this.updateNodeStyleByKey(nodeKey);
-        // move to front
-        var nodeIndex = this.frontNodeLayer.getChildIndex(node.nodeGfx);
-        this.nodeLayer.removeChildAt(nodeIndex);
-        this.nodeLabelLayer.removeChildAt(nodeIndex);
-        this.frontNodeLayer.removeChildAt(nodeIndex);
-        this.frontNodeLabelLayer.removeChildAt(nodeIndex);
-        this.nodeLayer.addChild(node.nodeGfx);
-        this.nodeLabelLayer.addChild(node.nodeLabelGfx);
-        this.frontNodeLayer.addChild(node.nodePlaceholderGfx);
-        this.frontNodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
+        this.unsetNodeStatus(nodeKey, 'hovered');
     };
     PixiGraph.prototype.hoverEdge = function (edgeKey) {
         var edge = this.edgeKeyToEdgeObject.get(edgeKey);
@@ -763,16 +828,35 @@ var PixiGraph = /** @class */ (function (_super) {
         this.updateNodeStyleByKey(nodeKey);
         this.graph.edges(nodeKey).forEach(this.updateEdgeStyleByKey.bind(this));
     };
+    PixiGraph.prototype.moveNodebyDelta = function (nodeKey, deltaX, deltaY) {
+        var x = this.graph.getNodeAttribute(nodeKey, 'x');
+        var y = this.graph.getNodeAttribute(nodeKey, 'y');
+        this.graph.setNodeAttribute(nodeKey, 'x', x + deltaX);
+        this.graph.setNodeAttribute(nodeKey, 'y', y + deltaY);
+        // update style
+        this.updateNodeStyleByKey(nodeKey);
+        this.graph.edges(nodeKey).forEach(this.updateEdgeStyleByKey.bind(this));
+    };
     PixiGraph.prototype.enableNodeDragging = function () {
         this.viewport.pause = true; // disable viewport dragging
         document.addEventListener('mousemove', this.onDocumentMouseMoveBound);
         document.addEventListener('mouseup', this.onDocumentMouseUpBound, { once: true });
     };
     PixiGraph.prototype.onDocumentMouseMove = function (event) {
+        var _this = this;
         var eventPosition = new math.Point(event.offsetX, event.offsetY);
         var worldPosition = this.viewport.toWorld(eventPosition);
         if (this.mousedownNodeKey) {
-            this.moveNode(this.mousedownNodeKey, worldPosition);
+            if (this.selectNodeKeys.has(this.mousedownNodeKey)) {
+                var prevX = this.graph.getNodeAttribute(this.mousedownNodeKey, 'x');
+                var preY = this.graph.getNodeAttribute(this.mousedownNodeKey, 'y');
+                var deltaX_1 = worldPosition.x - prevX;
+                var deltaY_1 = worldPosition.y - preY;
+                this.selectNodeKeys.forEach(function (nodeKey) { return _this.moveNodebyDelta(nodeKey, deltaX_1, deltaY_1); });
+            }
+            else {
+                this.moveNode(this.mousedownNodeKey, worldPosition);
+            }
         }
     };
     PixiGraph.prototype.onDocumentMouseUp = function () {
@@ -794,6 +878,7 @@ var PixiGraph = /** @class */ (function (_super) {
         var _this = this;
         var node = new PixiNode();
         node.on('mousemove', function (event) {
+            _this.mouseDownNoMove = false;
             _this.emit('nodeMousemove', event, nodeKey);
         });
         node.on('mouseover', function (event) {
@@ -809,16 +894,54 @@ var PixiGraph = /** @class */ (function (_super) {
             _this.emit('nodeMouseout', event, nodeKey);
         });
         node.on('mousedown', function (event) {
+            _this.mouseDownNoMove = true;
             _this.mousedownNodeKey = nodeKey;
             _this.enableNodeDragging();
             _this.emit('nodeMousedown', event, nodeKey);
         });
+        node.on('rightdown', function (_event) {
+            _this.mouseDownNoMove = true;
+            _this.mousedownNodeKey = nodeKey;
+        });
+        node.on('rightup', function (event) {
+            _this.mouseDownNoMove = true;
+            if (_this.mousedownNodeKey === nodeKey) {
+                _this.emit('nodeRightClick', event, nodeKey);
+            }
+            _this.mousedownNodeKey = null;
+        });
+        var doubleClickDelayMs = 350;
+        var previousTapStamp = 0;
         node.on('mouseup', function (event) {
             _this.emit('nodeMouseup', event, nodeKey);
             // why native click event doesn't work?
-            if (_this.mousedownNodeKey === nodeKey) {
+            if (_this.mousedownNodeKey === nodeKey && _this.mouseDownNoMove) {
                 _this.emit('nodeClick', event, nodeKey);
+                if (event.metaKey || event.ctrlKey || event.shiftKey) {
+                    _this.selectNodeKeys.add(nodeKey);
+                    _this.selectNode(nodeKey);
+                }
+                else {
+                    _this.selectNodeKeys.forEach(function (nodeKey) {
+                        _this.unselectNode(nodeKey);
+                    });
+                    _this.selectNodeKeys.clear();
+                    _this.selectNodeKeys.add(nodeKey);
+                    _this.selectNode(nodeKey);
+                }
+                // check for double click
+                if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                    return;
+                }
+                var currentTapStamp = event.timeStamp;
+                var msFromLastTap = currentTapStamp - previousTapStamp;
+                previousTapStamp = currentTapStamp;
+                if (msFromLastTap < doubleClickDelayMs) {
+                    _this.emit('nodeDoubleClick', event, nodeKey);
+                    return;
+                }
             }
+            _this.mousedownNodeKey = null;
         });
         this.nodeLayer.addChild(node.nodeGfx);
         this.nodeLabelLayer.addChild(node.nodeLabelGfx);
@@ -879,7 +1002,14 @@ var PixiGraph = /** @class */ (function (_super) {
         var node = this.nodeKeyToNodeObject.get(nodeKey);
         var nodePosition = { x: nodeAttributes.x, y: nodeAttributes.y };
         node.updatePosition(nodePosition);
-        var nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node, node.hovered ? this.hoverStyle.node : undefined];
+        var stateStyle = undefined;
+        if (node.selected) {
+            stateStyle = this.selectStyle.node;
+        }
+        else if (node.hovered) {
+            stateStyle = this.hoverStyle.node;
+        }
+        var nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node, stateStyle];
         var nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, nodeAttributes);
         node.updateStyle(nodeStyle, this.textureCache);
     };
