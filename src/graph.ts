@@ -108,6 +108,7 @@ export class PixiGraph<
 
   private mousedownNodeKey: string | null = null;
   private mousedownEdgeKey: string | null = null;
+  private mouseDownNoMove: boolean = false;
 
   private onGraphNodeAddedBound = this.onGraphNodeAdded.bind(this);
   private onGraphEdgeAddedBound = this.onGraphEdgeAdded.bind(this);
@@ -170,9 +171,21 @@ export class PixiGraph<
       .decelerate()
       .clampZoom({ maxScale: 2 });
     this.app.stage.addChild(this.viewport);
-    this.viewport.on('mouseup', (event: MouseEvent) => {
+    this.viewport.on('mousemove', (event: MouseEvent) => {
       // @ts-ignore
       if (event.target === this.viewport) {
+        this.mouseDownNoMove = false;
+      }
+    });
+    this.viewport.on('mousedown', (event: MouseEvent) => {
+      // @ts-ignore
+      if (event.target === this.viewport) {
+        this.mouseDownNoMove = true;
+      }
+    });
+    this.viewport.on('mouseup', (event: MouseEvent) => {
+      // @ts-ignore
+      if (event.target === this.viewport && this.mouseDownNoMove) {
         this.selectNodeKeys.forEach((nodeKey) => {
           this.unselectNode(nodeKey);
         });
@@ -514,6 +527,7 @@ export class PixiGraph<
   private createNode(nodeKey: string, nodeAttributes: NodeAttributes) {
     const node = new PixiNode();
     node.on('mousemove', (event: MouseEvent) => {
+      this.mouseDownNoMove = false;
       this.emit('nodeMousemove', event, nodeKey);
     });
     node.on('mouseover', (event: MouseEvent) => {
@@ -529,6 +543,7 @@ export class PixiGraph<
       this.emit('nodeMouseout', event, nodeKey);
     });
     node.on('mousedown', (event: MouseEvent) => {
+      this.mouseDownNoMove = true;
       this.mousedownNodeKey = nodeKey;
       this.enableNodeDragging();
       this.emit('nodeMousedown', event, nodeKey);
@@ -537,7 +552,7 @@ export class PixiGraph<
       event.stopPropagation();
       this.emit('nodeMouseup', event, nodeKey);
       // why native click event doesn't work?
-      if (this.mousedownNodeKey === nodeKey) {
+      if (this.mousedownNodeKey === nodeKey && this.mouseDownNoMove) {
         this.emit('nodeClick', event, nodeKey);
         if (event.metaKey || event.ctrlKey || event.shiftKey) {
           this.selectNodeKeys.add(nodeKey);
