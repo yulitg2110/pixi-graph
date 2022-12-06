@@ -3,7 +3,7 @@ import { TickerPlugin } from '@pixi/ticker';
 import { AppLoaderPlugin, Loader } from '@pixi/loaders';
 import { BitmapFontLoader } from '@pixi/text-bitmap';
 import { Renderer, BatchRenderer } from '@pixi/core';
-import { InteractionManager } from '@pixi/interaction';
+import { InteractionEvent, InteractionManager } from '@pixi/interaction';
 import { Container } from '@pixi/display';
 import { Point, IPointData } from '@pixi/math';
 import { IAddOptions } from '@pixi/loaders';
@@ -109,7 +109,7 @@ export class PixiGraph<
 
   private mousedownNodeKey: string | null = null;
   private mousedownEdgeKey: string | null = null;
-  private mouseDownNoMove: boolean = false;
+  private mouseDownPosition: { x: number; y: number } | null = null;
 
   private onGraphNodeAddedBound = this.onGraphNodeAdded.bind(this);
   private onGraphEdgeAddedBound = this.onGraphEdgeAdded.bind(this);
@@ -172,25 +172,31 @@ export class PixiGraph<
       .decelerate()
       .clampZoom({ maxScale: 2.5 });
     this.app.stage.addChild(this.viewport);
-    this.viewport.on('mousemove', (event: MouseEvent) => {
-      // @ts-ignore
+    this.viewport.on('mousedown', (event: InteractionEvent) => {
       if (event.target === this.viewport) {
-        this.mouseDownNoMove = false;
+        let mouseEvent = event.data.originalEvent as MouseEvent;
+        this.mouseDownPosition = {
+          x: mouseEvent.clientX,
+          y: mouseEvent.clientY,
+        };
       }
     });
-    this.viewport.on('mousedown', (event: MouseEvent) => {
-      // @ts-ignore
-      if (event.target === this.viewport) {
-        this.mouseDownNoMove = true;
-      }
-    });
-    this.viewport.on('mouseup', (event: MouseEvent) => {
-      // @ts-ignore
-      if (event.target === this.viewport && this.mouseDownNoMove) {
-        this.selectNodeKeys.forEach((nodeKey) => {
-          this.unselectNode(nodeKey);
-        });
-        this.selectNodeKeys.clear();
+    this.viewport.on('mouseup', (event: InteractionEvent) => {
+      if (event.target === this.viewport && this.mouseDownPosition) {
+        let mouseEvent = event.data.originalEvent as MouseEvent;
+
+        let diff =
+          Math.sqrt(Math.abs(mouseEvent.clientX - this.mouseDownPosition.x)) +
+          Math.sqrt(Math.abs(mouseEvent.clientY - this.mouseDownPosition.y));
+
+        if (diff <= 2) {
+          this.selectNodeKeys.forEach((nodeKey) => {
+            this.unselectNode(nodeKey);
+          });
+          this.selectNodeKeys.clear();
+        }
+
+        this.mouseDownPosition = null;
       }
     });
 
@@ -549,7 +555,6 @@ export class PixiGraph<
   private createNode(nodeKey: string, nodeAttributes: NodeAttributes) {
     const node = new PixiNode();
     node.on('mousemove', (event: MouseEvent) => {
-      this.mouseDownNoMove = false;
       this.emit('nodeMousemove', event, nodeKey);
     });
     node.on('mouseover', (event: MouseEvent) => {
@@ -565,18 +570,19 @@ export class PixiGraph<
       this.emit('nodeMouseout', event, nodeKey);
     });
     node.on('mousedown', (event: MouseEvent) => {
-      this.mouseDownNoMove = true;
       this.mousedownNodeKey = nodeKey;
       this.enableNodeDragging();
       this.emit('nodeMousedown', event, nodeKey);
+      this.mouseDownPosition = {
+        x: event.clientX,
+        y: event.clientY,
+      };
     });
 
     node.on('rightdown', (_event: MouseEvent) => {
-      this.mouseDownNoMove = true;
       this.mousedownNodeKey = nodeKey;
     });
     node.on('rightup', (event: MouseEvent) => {
-      this.mouseDownNoMove = true;
       if (this.mousedownNodeKey === nodeKey) {
         this.emit('nodeRightClick', event, nodeKey);
       }
@@ -588,34 +594,41 @@ export class PixiGraph<
 
     node.on('mouseup', (event: MouseEvent) => {
       this.emit('nodeMouseup', event, nodeKey);
+
       // why native click event doesn't work?
-      if (this.mousedownNodeKey === nodeKey && this.mouseDownNoMove) {
-        this.emit('nodeClick', event, nodeKey);
-        if (event.metaKey || event.ctrlKey || event.shiftKey) {
-          this.selectNodeKeys.add(nodeKey);
-          this.selectNode(nodeKey);
-        } else {
-          this.selectNodeKeys.forEach((nodeKey) => {
-            this.unselectNode(nodeKey);
-          });
-          this.selectNodeKeys.clear();
+      if (this.mousedownNodeKey === nodeKey && this.mouseDownPosition) {
+        let diff =
+          Math.sqrt(Math.abs(event.clientX - this.mouseDownPosition.x)) +
+          Math.sqrt(Math.abs(event.clientY - this.mouseDownPosition.y));
 
-          this.selectNodeKeys.add(nodeKey);
-          this.selectNode(nodeKey);
-        }
+        if (diff <= 2) {
+          this.emit('nodeClick', event, nodeKey);
+          if (event.metaKey || event.ctrlKey || event.shiftKey) {
+            this.selectNodeKeys.add(nodeKey);
+            this.selectNode(nodeKey);
+          } else {
+            this.selectNodeKeys.forEach((nodeKey) => {
+              this.unselectNode(nodeKey);
+            });
+            this.selectNodeKeys.clear();
 
-        // check for double click
-        if (event.shiftKey || event.ctrlKey || event.metaKey) {
-          return;
-        }
+            this.selectNodeKeys.add(nodeKey);
+            this.selectNode(nodeKey);
+          }
 
-        const currentTapStamp = event.timeStamp;
-        const msFromLastTap = currentTapStamp - previousTapStamp;
+          // check for double click
+          if (event.shiftKey || event.ctrlKey || event.metaKey) {
+            return;
+          }
 
-        previousTapStamp = currentTapStamp;
-        if (msFromLastTap < doubleClickDelayMs) {
-          this.emit('nodeDoubleClick', event, nodeKey);
-          return;
+          const currentTapStamp = event.timeStamp;
+          const msFromLastTap = currentTapStamp - previousTapStamp;
+
+          previousTapStamp = currentTapStamp;
+          if (msFromLastTap < doubleClickDelayMs) {
+            this.emit('nodeDoubleClick', event, nodeKey);
+            return;
+          }
         }
       }
       this.mousedownNodeKey = null;
