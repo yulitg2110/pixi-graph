@@ -10,6 +10,7 @@
   "author": "Jan Zak <zj@zakjan.cz>",
   "repository": "github:zakjan/pixi-graph",
   "main": "dist/pixi-graph.cjs.js",
+  "module": "dist/pixi-graph.esm.js",
   "types": "dist/pixi-graph.d.ts",
   "scripts": {
     "build": "rimraf dist && rollup -c",
