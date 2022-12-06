@@ -99,7 +99,7 @@
             size: 30,
             color: (node) => colors[(node.group || Number(node.id) || 0) % colors.length],
             border: {
-              width: 2,
+              width: 0,
               color: '#ffffff',
             },
             icon: {
@@ -113,13 +113,12 @@
               fontFamily: 'HelveticaRegular',
               fontSize: 12,
               color: '#333333',
-              backgroundColor: 'rgba(255, 255, 255, 0.5)',
               padding: 4,
             },
           },
           edge: {
             width: 1,
-            color: '#cccccc',
+            color: '#ff0000',
           },
         };
         const hoverStyle = {

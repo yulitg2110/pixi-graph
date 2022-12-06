@@ -41,7 +41,6 @@ const DEFAULT_STYLE: GraphStyleDefinition = {
       fontSize: 12,
       content: '',
       color: '#333333',
-      backgroundColor: 'rgba(0, 0, 0, 0)',
       padding: 4,
     },
   },
@@ -171,7 +170,7 @@ export class PixiGraph<
       .pinch()
       .wheel()
       .decelerate()
-      .clampZoom({ maxScale: 2 });
+      .clampZoom({ maxScale: 2.5 });
     this.app.stage.addChild(this.viewport);
     this.viewport.on('mousemove', (event: MouseEvent) => {
       // @ts-ignore

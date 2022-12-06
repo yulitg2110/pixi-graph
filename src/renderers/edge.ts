@@ -37,17 +37,16 @@ export function updatePosition(
   targetNodePosition: IPointData,
   nodeStyle: NodeStyle
 ) {
-  const nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
+  const nodeSize = nodeStyle.size;
 
   // edgeGfx -> edgeLine
   const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
   const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as unknown as Sprite;
-  // reduce line length
-  edgeLine.height = length - nodeOuterSize * 2 - 2;
+  edgeLine.height = length - nodeSize * 2 - 2;
 
   // edgeGfx -> edgeArrow
   const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as unknown as Sprite;
-  edgeArrow.y = length / 2 - nodeOuterSize - ARROW_SIZE;
+  edgeArrow.y = length / 2 - nodeSize - ARROW_SIZE;
 }
 
 export function updateEdgeStyle(
