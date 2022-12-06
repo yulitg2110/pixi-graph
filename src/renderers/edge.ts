@@ -42,11 +42,11 @@ export function updatePosition(
   // edgeGfx -> edgeLine
   const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
   const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as unknown as Sprite;
-  edgeLine.height = length - nodeSize * 2 - 2;
+  edgeLine.height = length - nodeSize * 2 - 4;
 
   // edgeGfx -> edgeArrow
   const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as unknown as Sprite;
-  edgeArrow.y = length / 2 - nodeSize - ARROW_SIZE;
+  edgeArrow.y = length / 2 - nodeSize - ARROW_SIZE - 1;
 }
 
 export function updateEdgeStyle(

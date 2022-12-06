@@ -231,14 +231,8 @@ function updateNodeVisibility(nodeGfx, zoomStep) {
 }
 
 var DELIMETER$1 = '::';
-var NODE_LABEL_BACKGROUND = 'NODE_LABEL_BACKGROUND';
 var NODE_LABEL_TEXT = 'NODE_LABEL_TEXT';
 function createNodeLabel(nodeLabelGfx) {
-    // nodeLabelGfx -> nodeLabelBackground
-    var nodeLabelBackground = new sprite.Sprite(core.Texture.WHITE);
-    nodeLabelBackground.name = NODE_LABEL_BACKGROUND;
-    nodeLabelBackground.anchor.set(0.5);
-    nodeLabelGfx.addChild(nodeLabelBackground);
     // nodeLabelGfx -> nodeLabelText
     var nodeLabelText = new sprite.Sprite();
     nodeLabelText.name = NODE_LABEL_TEXT;
@@ -246,8 +240,7 @@ function createNodeLabel(nodeLabelGfx) {
     nodeLabelGfx.addChild(nodeLabelText);
 }
 function updateNodeLabelStyle(nodeLabelGfx, nodeStyle, textureCache) {
-    var _a, _b;
-    var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
+    var _a;
     var nodeLabelTextTextureKey = [
         NODE_LABEL_TEXT,
         nodeStyle.label.fontFamily,
@@ -261,22 +254,13 @@ function updateNodeLabelStyle(nodeLabelGfx, nodeStyle, textureCache) {
         });
         return text;
     });
-    // nodeLabelGfx -> nodeLabelBackground
-    var nodeLabelBackground = nodeLabelGfx.getChildByName(NODE_LABEL_BACKGROUND);
-    nodeLabelBackground.y = nodeOuterSize + (nodeLabelTextTexture.height + nodeStyle.label.padding * 2) / 2;
-    nodeLabelBackground.width = nodeLabelTextTexture.width + nodeStyle.label.padding * 2;
-    nodeLabelBackground.height = nodeLabelTextTexture.height + nodeStyle.label.padding * 2;
-    _a = colorToPixi(nodeStyle.label.backgroundColor), nodeLabelBackground.tint = _a[0], nodeLabelBackground.alpha = _a[1];
     // nodeLabelGfx -> nodeLabelText
     var nodeLabelText = nodeLabelGfx.getChildByName(NODE_LABEL_TEXT);
     nodeLabelText.texture = nodeLabelTextTexture;
-    nodeLabelText.y = nodeOuterSize + (nodeLabelTextTexture.height + nodeStyle.label.padding * 2) / 2;
-    _b = colorToPixi(nodeStyle.label.color), nodeLabelText.tint = _b[0], nodeLabelText.alpha = _b[1];
+    nodeLabelText.y = nodeStyle.size + (nodeLabelTextTexture.height + nodeStyle.label.padding * 2) / 2;
+    _a = colorToPixi(nodeStyle.label.color), nodeLabelText.tint = _a[0], nodeLabelText.alpha = _a[1];
 }
 function updateNodeLabelVisibility(nodeLabelGfx, zoomStep) {
-    // nodeLabelGfx -> nodeLabelBackground
-    var nodeLabelBackground = nodeLabelGfx.getChildByName(NODE_LABEL_BACKGROUND);
-    nodeLabelBackground.visible = zoomStep >= 3;
     // nodeLabelGfx -> nodeLabelText
     var nodeLabelText = nodeLabelGfx.getChildByName(NODE_LABEL_TEXT);
     nodeLabelText.visible = zoomStep >= 3;
@@ -373,15 +357,14 @@ function createEdge(edgeGfx) {
     edgeGfx.addChild(edgeArrow);
 }
 function updatePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle) {
-    var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
+    var nodeSize = nodeStyle.size;
     // edgeGfx -> edgeLine
     var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
     var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
-    // reduce line length
-    edgeLine.height = length - nodeOuterSize * 2 - 2;
+    edgeLine.height = length - nodeSize * 2 - 4;
     // edgeGfx -> edgeArrow
     var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
-    edgeArrow.y = length / 2 - nodeOuterSize - ARROW_SIZE;
+    edgeArrow.y = length / 2 - nodeSize - ARROW_SIZE - 1;
 }
 function updateEdgeStyle(edgeGfx, edgeStyle, textureCache, isDirected) {
     var _a, _b;
@@ -484,7 +467,6 @@ var DEFAULT_STYLE = {
             fontSize: 12,
             content: '',
             color: '#333333',
-            backgroundColor: 'rgba(0, 0, 0, 0)',
             padding: 4,
         },
     },
@@ -503,7 +485,7 @@ var PixiGraph = /** @class */ (function (_super) {
         _this.selectNodeKeys = new Set();
         _this.mousedownNodeKey = null;
         _this.mousedownEdgeKey = null;
-        _this.mouseDownNoMove = false;
+        _this.mouseDownPosition = null;
         _this.onGraphNodeAddedBound = _this.onGraphNodeAdded.bind(_this);
         _this.onGraphEdgeAddedBound = _this.onGraphEdgeAdded.bind(_this);
         _this.onGraphNodeDroppedBound = _this.onGraphNodeDropped.bind(_this);
@@ -553,27 +535,29 @@ var PixiGraph = /** @class */ (function (_super) {
             .pinch()
             .wheel()
             .decelerate()
-            .clampZoom({ maxScale: 2 });
+            .clampZoom({ maxScale: 2.5 });
         _this.app.stage.addChild(_this.viewport);
-        _this.viewport.on('mousemove', function (event) {
-            // @ts-ignore
-            if (event.target === _this.viewport) {
-                _this.mouseDownNoMove = false;
-            }
-        });
         _this.viewport.on('mousedown', function (event) {
-            // @ts-ignore
             if (event.target === _this.viewport) {
-                _this.mouseDownNoMove = true;
+                var mouseEvent = event.data.originalEvent;
+                _this.mouseDownPosition = {
+                    x: mouseEvent.clientX,
+                    y: mouseEvent.clientY,
+                };
             }
         });
         _this.viewport.on('mouseup', function (event) {
-            // @ts-ignore
-            if (event.target === _this.viewport && _this.mouseDownNoMove) {
-                _this.selectNodeKeys.forEach(function (nodeKey) {
-                    _this.unselectNode(nodeKey);
-                });
-                _this.selectNodeKeys.clear();
+            if (event.target === _this.viewport && _this.mouseDownPosition) {
+                var mouseEvent = event.data.originalEvent;
+                var diff = Math.sqrt(Math.abs(mouseEvent.clientX - _this.mouseDownPosition.x)) +
+                    Math.sqrt(Math.abs(mouseEvent.clientY - _this.mouseDownPosition.y));
+                if (diff <= 2) {
+                    _this.selectNodeKeys.forEach(function (nodeKey) {
+                        _this.unselectNode(nodeKey);
+                    });
+                    _this.selectNodeKeys.clear();
+                }
+                _this.mouseDownPosition = null;
             }
         });
         // create layers
@@ -878,7 +862,6 @@ var PixiGraph = /** @class */ (function (_super) {
         var _this = this;
         var node = new PixiNode();
         node.on('mousemove', function (event) {
-            _this.mouseDownNoMove = false;
             _this.emit('nodeMousemove', event, nodeKey);
         });
         node.on('mouseover', function (event) {
@@ -894,17 +877,18 @@ var PixiGraph = /** @class */ (function (_super) {
             _this.emit('nodeMouseout', event, nodeKey);
         });
         node.on('mousedown', function (event) {
-            _this.mouseDownNoMove = true;
             _this.mousedownNodeKey = nodeKey;
             _this.enableNodeDragging();
             _this.emit('nodeMousedown', event, nodeKey);
+            _this.mouseDownPosition = {
+                x: event.clientX,
+                y: event.clientY,
+            };
         });
         node.on('rightdown', function (_event) {
-            _this.mouseDownNoMove = true;
             _this.mousedownNodeKey = nodeKey;
         });
         node.on('rightup', function (event) {
-            _this.mouseDownNoMove = true;
             if (_this.mousedownNodeKey === nodeKey) {
                 _this.emit('nodeRightClick', event, nodeKey);
             }
@@ -915,30 +899,34 @@ var PixiGraph = /** @class */ (function (_super) {
         node.on('mouseup', function (event) {
             _this.emit('nodeMouseup', event, nodeKey);
             // why native click event doesn't work?
-            if (_this.mousedownNodeKey === nodeKey && _this.mouseDownNoMove) {
-                _this.emit('nodeClick', event, nodeKey);
-                if (event.metaKey || event.ctrlKey || event.shiftKey) {
-                    _this.selectNodeKeys.add(nodeKey);
-                    _this.selectNode(nodeKey);
-                }
-                else {
-                    _this.selectNodeKeys.forEach(function (nodeKey) {
-                        _this.unselectNode(nodeKey);
-                    });
-                    _this.selectNodeKeys.clear();
-                    _this.selectNodeKeys.add(nodeKey);
-                    _this.selectNode(nodeKey);
-                }
-                // check for double click
-                if (event.shiftKey || event.ctrlKey || event.metaKey) {
-                    return;
-                }
-                var currentTapStamp = event.timeStamp;
-                var msFromLastTap = currentTapStamp - previousTapStamp;
-                previousTapStamp = currentTapStamp;
-                if (msFromLastTap < doubleClickDelayMs) {
-                    _this.emit('nodeDoubleClick', event, nodeKey);
-                    return;
+            if (_this.mousedownNodeKey === nodeKey && _this.mouseDownPosition) {
+                var diff = Math.sqrt(Math.abs(event.clientX - _this.mouseDownPosition.x)) +
+                    Math.sqrt(Math.abs(event.clientY - _this.mouseDownPosition.y));
+                if (diff <= 2) {
+                    _this.emit('nodeClick', event, nodeKey);
+                    if (event.metaKey || event.ctrlKey || event.shiftKey) {
+                        _this.selectNodeKeys.add(nodeKey);
+                        _this.selectNode(nodeKey);
+                    }
+                    else {
+                        _this.selectNodeKeys.forEach(function (nodeKey) {
+                            _this.unselectNode(nodeKey);
+                        });
+                        _this.selectNodeKeys.clear();
+                        _this.selectNodeKeys.add(nodeKey);
+                        _this.selectNode(nodeKey);
+                    }
+                    // check for double click
+                    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                        return;
+                    }
+                    var currentTapStamp = event.timeStamp;
+                    var msFromLastTap = currentTapStamp - previousTapStamp;
+                    previousTapStamp = currentTapStamp;
+                    if (msFromLastTap < doubleClickDelayMs) {
+                        _this.emit('nodeDoubleClick', event, nodeKey);
+                        return;
+                    }
                 }
             }
             _this.mousedownNodeKey = null;

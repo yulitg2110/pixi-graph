@@ -37,7 +37,6 @@ interface GraphStyle {
             fontFamily: string;
             fontSize: number;
             color: string;
-            backgroundColor: string;
             padding: number;
         };
     };
@@ -104,7 +103,7 @@ declare class PixiGraph<NodeAttributes extends BaseNodeAttributes = BaseNodeAttr
     private selectNodeKeys;
     private mousedownNodeKey;
     private mousedownEdgeKey;
-    private mouseDownNoMove;
+    private mouseDownPosition;
     private onGraphNodeAddedBound;
     private onGraphEdgeAddedBound;
     private onGraphNodeDroppedBound;
