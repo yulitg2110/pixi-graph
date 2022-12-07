@@ -859,13 +859,13 @@ var PixiGraph = /** @class */ (function (_super) {
         var _this = this;
         var node = new PixiNode();
         node.on('mousemove', function (event) {
-            _this.emit('nodeMousemove', event, nodeKey, node.nodeGfx.getBounds());
+            _this.emit('nodeMousemove', event, nodeKey);
         });
         node.on('mouseover', function (event) {
             if (!_this.mousedownNodeKey) {
                 _this.hoverNode(nodeKey);
             }
-            _this.emit('nodeMouseover', event, nodeKey);
+            _this.emit('nodeMouseover', event, nodeKey, node.nodeGfx.getBounds());
         });
         node.on('mouseout', function (event) {
             if (!_this.mousedownNodeKey) {

@@ -68,8 +68,8 @@ interface PixiGraphEvents {
   nodeClick: (event: MouseEvent, nodeKey: string) => void;
   nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
   nodeRightClick: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
-  nodeMousemove: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
-  nodeMouseover: (event: MouseEvent, nodeKey: string) => void;
+  nodeMousemove: (event: MouseEvent, nodeKey: string) => void;
+  nodeMouseover: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
   nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
   nodeMousedown: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseup: (event: MouseEvent, nodeKey: string) => void;
@@ -562,13 +562,13 @@ export class PixiGraph<
   private createNode(nodeKey: string, nodeAttributes: NodeAttributes) {
     const node = new PixiNode();
     node.on('mousemove', (event: MouseEvent) => {
-      this.emit('nodeMousemove', event, nodeKey, node.nodeGfx.getBounds());
+      this.emit('nodeMousemove', event, nodeKey);
     });
     node.on('mouseover', (event: MouseEvent) => {
       if (!this.mousedownNodeKey) {
         this.hoverNode(nodeKey);
       }
-      this.emit('nodeMouseover', event, nodeKey);
+      this.emit('nodeMouseover', event, nodeKey, node.nodeGfx.getBounds());
     });
     node.on('mouseout', (event: MouseEvent) => {
       if (!this.mousedownNodeKey) {
