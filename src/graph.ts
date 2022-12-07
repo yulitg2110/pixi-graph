@@ -65,9 +65,9 @@ export interface GraphOptions<
 }
 
 interface PixiGraphEvents {
-  nodeClick: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
+  nodeClick: (event: MouseEvent, nodeKey: string) => void;
   nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
-  nodeRightClick: (event: MouseEvent, nodeKey: string) => void;
+  nodeRightClick: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
   nodeMousemove: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
   nodeMouseover: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
@@ -583,7 +583,7 @@ export class PixiGraph<
     });
     node.on('rightup', (event: MouseEvent) => {
       if (this.mousedownNodeKey === nodeKey) {
-        this.emit('nodeRightClick', event, nodeKey);
+        this.emit('nodeRightClick', event, nodeKey, node.nodeGfx.getBounds());
       }
       this.mousedownNodeKey = null;
     });
@@ -614,8 +614,7 @@ export class PixiGraph<
             this.selectNode(nodeKey);
           }
 
-          const bounds = node.nodeGfx.getBounds();
-          this.emit('nodeClick', event, nodeKey, bounds);
+          this.emit('nodeClick', event, nodeKey);
 
           // check for double click
           if (event.shiftKey || event.ctrlKey || event.metaKey) {
