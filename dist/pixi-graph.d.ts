@@ -1,6 +1,9 @@
 import { Attributes, AbstractGraph } from 'graphology-types';
+import { IPointData, Rectangle } from '@pixi/math';
 import { IAddOptions } from '@pixi/loaders';
 import { TypedEmitter } from 'tiny-typed-emitter';
+import { Container } from '@pixi/display';
+import { AbstractRenderer, Texture } from '@pixi/core';
 
 declare enum TextType {
     TEXT = "TEXT",
@@ -57,6 +60,40 @@ interface GraphStyleDefinition<NodeAttributes extends BaseNodeAttributes = BaseN
     edge?: EdgeStyleDefinition<EdgeAttributes>;
 }
 
+declare class TextureCache {
+    renderer: AbstractRenderer;
+    private textures;
+    constructor(renderer: AbstractRenderer);
+    get(key: string, defaultCallback: () => Container): Texture;
+    delete(key: string): void;
+    clear(): void;
+    destroy(): void;
+}
+
+interface PixiNodeEvents {
+    mousemove: (event: MouseEvent) => void;
+    mouseover: (event: MouseEvent) => void;
+    mouseout: (event: MouseEvent) => void;
+    mousedown: (event: MouseEvent) => void;
+    mouseup: (event: MouseEvent) => void;
+    rightdown: (event: MouseEvent) => void;
+    rightup: (event: MouseEvent) => void;
+}
+declare class PixiNode extends TypedEmitter<PixiNodeEvents> {
+    nodeGfx: Container;
+    nodeLabelGfx: Container;
+    nodePlaceholderGfx: Container;
+    nodeLabelPlaceholderGfx: Container;
+    hovered: boolean;
+    selected: boolean;
+    constructor();
+    private createNode;
+    private createNodeLabel;
+    updatePosition(position: IPointData): void;
+    updateStyle(nodeStyle: NodeStyle, textureCache: TextureCache): void;
+    updateVisibility(zoomStep: number): void;
+}
+
 interface GraphOptions<NodeAttributes extends BaseNodeAttributes = BaseNodeAttributes, EdgeAttributes extends BaseEdgeAttributes = BaseEdgeAttributes> {
     container: HTMLElement;
     graph: AbstractGraph<NodeAttributes, EdgeAttributes>;
@@ -66,10 +103,10 @@ interface GraphOptions<NodeAttributes extends BaseNodeAttributes = BaseNodeAttri
     resources?: IAddOptions[];
 }
 interface PixiGraphEvents {
-    nodeClick: (event: MouseEvent, nodeKey: string) => void;
+    nodeClick: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
     nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
     nodeRightClick: (event: MouseEvent, nodeKey: string) => void;
-    nodeMousemove: (event: MouseEvent, nodeKey: string) => void;
+    nodeMousemove: (event: MouseEvent, nodeKey: string, node: PixiNode) => void;
     nodeMouseover: (event: MouseEvent, nodeKey: string) => void;
     nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
     nodeMousedown: (event: MouseEvent, nodeKey: string) => void;

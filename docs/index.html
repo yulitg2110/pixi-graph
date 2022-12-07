@@ -22,6 +22,13 @@
         top: 10px;
         left: 10px;
       }
+
+      #rect {
+        position: absolute;
+        left: 0;
+        right: 0;
+        background-color: red;
+      }
     </style>
   </head>
   <body>
@@ -44,6 +51,7 @@
       <button id="zoom-out">Zoom Out</button>
       <button id="reset-view">Reset View</button>
     </div>
+    <div id="rect"></div>
 
     <script>
       document.addEventListener('contextmenu', (e) => {
@@ -84,7 +92,12 @@
         console.time('layout');
         forceAtlas2.assign(graph, {
           iterations: 300,
-          settings: { ...forceAtlas2.inferSettings(graph), scalingRatio: 500, barnesHutOptimize: true },
+          settings: {
+            ...forceAtlas2.inferSettings(graph),
+            scalingRatio: 500,
+            barnesHutOptimize: true,
+            // gravity: 0.7,
+          },
         });
         console.timeEnd('layout');
         // const positions = await (await fetch('miserables-positions.json')).json();
@@ -118,7 +131,7 @@
           },
           edge: {
             width: 1,
-            color: '#ff0000',
+            color: '#ccc',
           },
         };
         const hoverStyle = {
@@ -164,7 +177,7 @@
           selectStyle,
           resources,
         });
-        // pixiGraph.on('nodeClick', (event, nodeKey) => console.log('nodeClick', event, nodeKey));
+        pixiGraph.on('nodeClick', (event, nodeKey, rect) => console.log('nodeClick', event, nodeKey, rect));
         // pixiGraph.on('nodeDoubleClick', (event, nodeKey) => console.log('nodeDoubleClick', event, nodeKey));
         // pixiGraph.on('nodeRightClick', (event, nodeKey) => console.log('nodeRightClick', event, nodeKey));
         // pixiGraph.on('nodeMousemove', (event, nodeKey) => console.log('nodeMousemove', event, nodeKey));

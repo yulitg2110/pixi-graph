@@ -5,7 +5,7 @@ import { BitmapFontLoader } from '@pixi/text-bitmap';
 import { Renderer, BatchRenderer } from '@pixi/core';
 import { InteractionEvent, InteractionManager } from '@pixi/interaction';
 import { Container } from '@pixi/display';
-import { Point, IPointData } from '@pixi/math';
+import { Point, IPointData, Rectangle } from '@pixi/math';
 import { IAddOptions } from '@pixi/loaders';
 import { Viewport } from 'pixi-viewport';
 import { Cull } from '@pixi-essentials/cull';
@@ -65,10 +65,10 @@ export interface GraphOptions<
 }
 
 interface PixiGraphEvents {
-  nodeClick: (event: MouseEvent, nodeKey: string) => void;
+  nodeClick: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
   nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
   nodeRightClick: (event: MouseEvent, nodeKey: string) => void;
-  nodeMousemove: (event: MouseEvent, nodeKey: string) => void;
+  nodeMousemove: (event: MouseEvent, nodeKey: string, node: PixiNode) => void;
   nodeMouseover: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
   nodeMousedown: (event: MouseEvent, nodeKey: string) => void;
@@ -517,7 +517,6 @@ export class PixiGraph<
   private onDocumentMouseMove(event: MouseEvent) {
     const eventPosition = new Point(event.offsetX, event.offsetY);
     const worldPosition = this.viewport.toWorld(eventPosition);
-
     if (this.mousedownNodeKey) {
       if (this.selectNodeKeys.has(this.mousedownNodeKey)) {
         let prevX = this.graph.getNodeAttribute(this.mousedownNodeKey, 'x') as number;
@@ -555,7 +554,7 @@ export class PixiGraph<
   private createNode(nodeKey: string, nodeAttributes: NodeAttributes) {
     const node = new PixiNode();
     node.on('mousemove', (event: MouseEvent) => {
-      this.emit('nodeMousemove', event, nodeKey);
+      this.emit('nodeMousemove', event, nodeKey, node);
     });
     node.on('mouseover', (event: MouseEvent) => {
       if (!this.mousedownNodeKey) {
@@ -602,7 +601,6 @@ export class PixiGraph<
           Math.sqrt(Math.abs(event.clientY - this.mouseDownPosition.y));
 
         if (diff <= 2) {
-          this.emit('nodeClick', event, nodeKey);
           if (event.metaKey || event.ctrlKey || event.shiftKey) {
             this.selectNodeKeys.add(nodeKey);
             this.selectNode(nodeKey);
@@ -615,6 +613,9 @@ export class PixiGraph<
             this.selectNodeKeys.add(nodeKey);
             this.selectNode(nodeKey);
           }
+
+          const bounds = node.nodeGfx.getBounds();
+          this.emit('nodeClick', event, nodeKey, bounds);
 
           // check for double click
           if (event.shiftKey || event.ctrlKey || event.metaKey) {

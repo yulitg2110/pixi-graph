@@ -46128,7 +46128,7 @@ if (vType < 0.5) {
             var _this = this;
             var node = new PixiNode();
             node.on('mousemove', function (event) {
-                _this.emit('nodeMousemove', event, nodeKey);
+                _this.emit('nodeMousemove', event, nodeKey, node);
             });
             node.on('mouseover', function (event) {
                 if (!_this.mousedownNodeKey) {
@@ -46169,7 +46169,6 @@ if (vType < 0.5) {
                     var diff = Math.sqrt(Math.abs(event.clientX - _this.mouseDownPosition.x)) +
                         Math.sqrt(Math.abs(event.clientY - _this.mouseDownPosition.y));
                     if (diff <= 2) {
-                        _this.emit('nodeClick', event, nodeKey);
                         if (event.metaKey || event.ctrlKey || event.shiftKey) {
                             _this.selectNodeKeys.add(nodeKey);
                             _this.selectNode(nodeKey);
@@ -46182,6 +46181,15 @@ if (vType < 0.5) {
                             _this.selectNodeKeys.add(nodeKey);
                             _this.selectNode(nodeKey);
                         }
+                        var bounds = node.nodeGfx.getBounds();
+                        var topLeft = new Point(bounds.left, bounds.top);
+                        var topLeftWorldPosition = _this.viewport.toGlobal(topLeft);
+                        var bottomRight = new Point(bounds.right, bounds.bottom);
+                        var bottomRightWorldPosition = _this.viewport.toGlobal(bottomRight);
+                        var boundsWorld = new Rectangle(topLeftWorldPosition.x, topLeftWorldPosition.y, bottomRightWorldPosition.x - topLeftWorldPosition.x, bottomRightWorldPosition.y - topLeftWorldPosition.y);
+                        console.log('bounds', bounds);
+                        console.log('boundsWorld', boundsWorld);
+                        _this.emit('nodeClick', event, nodeKey, bounds);
                         // check for double click
                         if (event.shiftKey || event.ctrlKey || event.metaKey) {
                             return;

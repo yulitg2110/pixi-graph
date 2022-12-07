@@ -14,10 +14,7 @@ const bundle = (format, filename, options = {}) => ({
     name: 'PixiGraph',
     sourcemap: true,
   },
-  external: [
-    ...Object.keys(pkg.peerDependencies),
-    ...(!options.resolve ? Object.keys(pkg.dependencies) : []),
-  ],
+  external: [...Object.keys(pkg.peerDependencies), ...(!options.resolve ? Object.keys(pkg.dependencies) : [])],
   plugins: [
     ...(options.resolve ? [resolve({ preferBuiltins: false })] : []),
     commonjs(),
@@ -26,25 +23,27 @@ const bundle = (format, filename, options = {}) => ({
       clean: options.stats,
     }),
     ...(options.minimize ? [terser()] : []),
-    ...(options.stats ? [visualizer({
-      filename: filename + '.stats.html',
-    })] : []),
+    ...(options.stats
+      ? [
+          visualizer({
+            filename: filename + '.stats.html',
+          }),
+        ]
+      : []),
   ],
 });
 
 export default [
   bundle('cjs', pkg.main),
   bundle('es', pkg.module),
-  bundle('umd', pkg.browser.replace('.min', ''), { resolve: true, stats: true }),
-  bundle('umd', pkg.browser, { resolve: true, minimize: true }),
+  bundle('umd', 'dist/pixi-graph.umd.min.js'.replace('.min', ''), { resolve: true, stats: true }),
+  bundle('umd', 'dist/pixi-graph.umd.min.js', { resolve: true, minimize: true }),
   {
     input: 'src/index.ts',
     output: {
       file: pkg.types,
       format: 'es',
     },
-    plugins: [
-      dts(),
-    ],
+    plugins: [dts()],
   },
 ];
