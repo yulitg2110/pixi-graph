@@ -490,6 +490,10 @@ export class PixiGraph<
     this.graph.setNodeAttribute(nodeKey, 'x', point.x);
     this.graph.setNodeAttribute(nodeKey, 'y', point.y);
 
+    const node = this.nodeKeyToNodeObject.get(nodeKey)!;
+    const nodePosition = { x: point.x, y: point.y };
+    node.updatePosition(nodePosition);
+
     // update style
     this.updateNodeStyleByKey(nodeKey);
     this.graph.edges(nodeKey).forEach(this.updateEdgeStyleByKey.bind(this));
@@ -501,6 +505,10 @@ export class PixiGraph<
 
     this.graph.setNodeAttribute(nodeKey, 'x', x + deltaX);
     this.graph.setNodeAttribute(nodeKey, 'y', y + deltaY);
+
+    const node = this.nodeKeyToNodeObject.get(nodeKey)!;
+    const nodePosition = { x: x + deltaX, y: y + deltaY };
+    node.updatePosition(nodePosition);
 
     // update style
     this.updateNodeStyleByKey(nodeKey);
@@ -639,6 +647,9 @@ export class PixiGraph<
     this.frontNodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
     this.nodeKeyToNodeObject.set(nodeKey, node);
 
+    const nodePosition = { x: nodeAttributes.x, y: nodeAttributes.y };
+    node.updatePosition(nodePosition);
+
     this.updateNodeStyle(nodeKey, nodeAttributes);
   }
 
@@ -712,9 +723,6 @@ export class PixiGraph<
 
   private updateNodeStyle(nodeKey: string, nodeAttributes: NodeAttributes) {
     const node = this.nodeKeyToNodeObject.get(nodeKey)!;
-
-    const nodePosition = { x: nodeAttributes.x, y: nodeAttributes.y };
-    node.updatePosition(nodePosition);
 
     let stateStyle: NodeStyleDefinition<NodeAttributes> | undefined = undefined;
     if (node.selected) {

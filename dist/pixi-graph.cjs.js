@@ -808,6 +808,9 @@ var PixiGraph = /** @class */ (function (_super) {
     PixiGraph.prototype.moveNode = function (nodeKey, point) {
         this.graph.setNodeAttribute(nodeKey, 'x', point.x);
         this.graph.setNodeAttribute(nodeKey, 'y', point.y);
+        var node = this.nodeKeyToNodeObject.get(nodeKey);
+        var nodePosition = { x: point.x, y: point.y };
+        node.updatePosition(nodePosition);
         // update style
         this.updateNodeStyleByKey(nodeKey);
         this.graph.edges(nodeKey).forEach(this.updateEdgeStyleByKey.bind(this));
@@ -817,6 +820,9 @@ var PixiGraph = /** @class */ (function (_super) {
         var y = this.graph.getNodeAttribute(nodeKey, 'y');
         this.graph.setNodeAttribute(nodeKey, 'x', x + deltaX);
         this.graph.setNodeAttribute(nodeKey, 'y', y + deltaY);
+        var node = this.nodeKeyToNodeObject.get(nodeKey);
+        var nodePosition = { x: x + deltaX, y: y + deltaY };
+        node.updatePosition(nodePosition);
         // update style
         this.updateNodeStyleByKey(nodeKey);
         this.graph.edges(nodeKey).forEach(this.updateEdgeStyleByKey.bind(this));
@@ -936,6 +942,8 @@ var PixiGraph = /** @class */ (function (_super) {
         this.frontNodeLayer.addChild(node.nodePlaceholderGfx);
         this.frontNodeLabelLayer.addChild(node.nodeLabelPlaceholderGfx);
         this.nodeKeyToNodeObject.set(nodeKey, node);
+        var nodePosition = { x: nodeAttributes.x, y: nodeAttributes.y };
+        node.updatePosition(nodePosition);
         this.updateNodeStyle(nodeKey, nodeAttributes);
     };
     PixiGraph.prototype.createEdge = function (edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes) {
@@ -988,8 +996,6 @@ var PixiGraph = /** @class */ (function (_super) {
     };
     PixiGraph.prototype.updateNodeStyle = function (nodeKey, nodeAttributes) {
         var node = this.nodeKeyToNodeObject.get(nodeKey);
-        var nodePosition = { x: nodeAttributes.x, y: nodeAttributes.y };
-        node.updatePosition(nodePosition);
         var stateStyle = undefined;
         if (node.selected) {
             stateStyle = this.selectStyle.node;
