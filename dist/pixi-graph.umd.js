@@ -46281,13 +46281,13 @@ if (vType < 0.5) {
             var targetNodeAttributes = this.graph.getNodeAttributes(targetNodeKey);
             this.updateEdgeStyle(edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes);
         };
-        PixiGraph.prototype.updateEdgeStyle = function (edgeKey, edgeAttributes, _sourceNodeKey, _targetNodeKey, sourceNodeAttributes, targetNodeAttributes) {
+        PixiGraph.prototype.updateEdgeStyle = function (edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, _sourceNodeAttributes, targetNodeAttributes) {
             var isDirected = this.graph.isDirected(edgeKey);
             var edge = this.edgeKeyToEdgeObject.get(edgeKey);
-            // const sourceNode = this.nodeKeyToNodeObject.get(sourceNodeKey)!;
-            // const targetNode = this.nodeKeyToNodeObject.get(targetNodeKey)!;
-            var sourceNodePosition = { x: sourceNodeAttributes.x, y: sourceNodeAttributes.y };
-            var targetNodePosition = { x: targetNodeAttributes.x, y: targetNodeAttributes.y };
+            var sourceNode = this.nodeKeyToNodeObject.get(sourceNodeKey);
+            var targetNode = this.nodeKeyToNodeObject.get(targetNodeKey);
+            var sourceNodePosition = { x: sourceNode.nodeGfx.position.x, y: sourceNode.nodeGfx.position.y };
+            var targetNodePosition = { x: targetNode.nodeGfx.position.x, y: targetNode.nodeGfx.position.y };
             var nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node];
             var nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, targetNodeAttributes);
             edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle);

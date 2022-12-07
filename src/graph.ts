@@ -755,19 +755,19 @@ export class PixiGraph<
   private updateEdgeStyle(
     edgeKey: string,
     edgeAttributes: EdgeAttributes,
-    _sourceNodeKey: string,
-    _targetNodeKey: string,
-    sourceNodeAttributes: NodeAttributes,
+    sourceNodeKey: string,
+    targetNodeKey: string,
+    _sourceNodeAttributes: NodeAttributes,
     targetNodeAttributes: NodeAttributes
   ) {
     const isDirected = this.graph.isDirected(edgeKey);
 
     const edge = this.edgeKeyToEdgeObject.get(edgeKey)!;
-    // const sourceNode = this.nodeKeyToNodeObject.get(sourceNodeKey)!;
-    // const targetNode = this.nodeKeyToNodeObject.get(targetNodeKey)!;
+    const sourceNode = this.nodeKeyToNodeObject.get(sourceNodeKey)!;
+    const targetNode = this.nodeKeyToNodeObject.get(targetNodeKey)!;
 
-    const sourceNodePosition = { x: sourceNodeAttributes.x, y: sourceNodeAttributes.y };
-    const targetNodePosition = { x: targetNodeAttributes.x, y: targetNodeAttributes.y };
+    const sourceNodePosition = { x: sourceNode.nodeGfx.position.x, y: sourceNode.nodeGfx.position.y };
+    const targetNodePosition = { x: targetNode.nodeGfx.position.x, y: targetNode.nodeGfx.position.y };
 
     const nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node];
     const nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, targetNodeAttributes);
