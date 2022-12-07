@@ -68,7 +68,7 @@ interface PixiGraphEvents {
   nodeClick: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
   nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
   nodeRightClick: (event: MouseEvent, nodeKey: string) => void;
-  nodeMousemove: (event: MouseEvent, nodeKey: string, node: PixiNode) => void;
+  nodeMousemove: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
   nodeMouseover: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
   nodeMousedown: (event: MouseEvent, nodeKey: string) => void;
@@ -554,7 +554,7 @@ export class PixiGraph<
   private createNode(nodeKey: string, nodeAttributes: NodeAttributes) {
     const node = new PixiNode();
     node.on('mousemove', (event: MouseEvent) => {
-      this.emit('nodeMousemove', event, nodeKey, node);
+      this.emit('nodeMousemove', event, nodeKey, node.nodeGfx.getBounds());
     });
     node.on('mouseover', (event: MouseEvent) => {
       if (!this.mousedownNodeKey) {

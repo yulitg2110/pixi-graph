@@ -853,7 +853,7 @@ var PixiGraph = /** @class */ (function (_super) {
         var _this = this;
         var node = new PixiNode();
         node.on('mousemove', function (event) {
-            _this.emit('nodeMousemove', event, nodeKey, node);
+            _this.emit('nodeMousemove', event, nodeKey, node.nodeGfx.getBounds());
         });
         node.on('mouseover', function (event) {
             if (!_this.mousedownNodeKey) {
@@ -907,13 +907,6 @@ var PixiGraph = /** @class */ (function (_super) {
                         _this.selectNode(nodeKey);
                     }
                     var bounds = node.nodeGfx.getBounds();
-                    var topLeft = new Point(bounds.left, bounds.top);
-                    var topLeftWorldPosition = _this.viewport.toGlobal(topLeft);
-                    var bottomRight = new Point(bounds.right, bounds.bottom);
-                    var bottomRightWorldPosition = _this.viewport.toGlobal(bottomRight);
-                    var boundsWorld = new Rectangle(topLeftWorldPosition.x, topLeftWorldPosition.y, bottomRightWorldPosition.x - topLeftWorldPosition.x, bottomRightWorldPosition.y - topLeftWorldPosition.y);
-                    console.log('bounds', bounds);
-                    console.log('boundsWorld', boundsWorld);
                     _this.emit('nodeClick', event, nodeKey, bounds);
                     // check for double click
                     if (event.shiftKey || event.ctrlKey || event.metaKey) {
