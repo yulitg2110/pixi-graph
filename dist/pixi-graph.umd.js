@@ -46156,7 +46156,7 @@ if (vType < 0.5) {
             });
             node.on('rightup', function (event) {
                 if (_this.mousedownNodeKey === nodeKey) {
-                    _this.emit('nodeRightClick', event, nodeKey);
+                    _this.emit('nodeRightClick', event, nodeKey, node.nodeGfx.getBounds());
                 }
                 _this.mousedownNodeKey = null;
             });
@@ -46181,8 +46181,7 @@ if (vType < 0.5) {
                             _this.selectNodeKeys.add(nodeKey);
                             _this.selectNode(nodeKey);
                         }
-                        var bounds = node.nodeGfx.getBounds();
-                        _this.emit('nodeClick', event, nodeKey, bounds);
+                        _this.emit('nodeClick', event, nodeKey);
                         // check for double click
                         if (event.shiftKey || event.ctrlKey || event.metaKey) {
                             return;
