@@ -65,14 +65,20 @@ export interface GraphOptions<
 }
 
 interface PixiGraphEvents {
+  // background
+  rightClick: (event: MouseEvent) => void;
+
+  // node
   nodeClick: (event: MouseEvent, nodeKey: string) => void;
   nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
-  nodeRightClick: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
+  nodeRightClick: (event: MouseEvent, nodeKey: string) => void;
   nodeMousemove: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseover: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
   nodeMouseout: (event: MouseEvent, nodeKey: string) => void;
   nodeMousedown: (event: MouseEvent, nodeKey: string) => void;
   nodeMouseup: (event: MouseEvent, nodeKey: string) => void;
+
+  // edge
   edgeClick: (event: MouseEvent, edgeKey: string) => void;
   edgeMousemove: (event: MouseEvent, edgeKey: string) => void;
   edgeMouseover: (event: MouseEvent, edgeKey: string) => void;
@@ -197,6 +203,13 @@ export class PixiGraph<
         }
 
         this.mouseDownPosition = null;
+      }
+    });
+
+    this.viewport.on('rightup', (event: InteractionEvent) => {
+      if (event.target === this.viewport) {
+        let mouseEvent = event.data.originalEvent as MouseEvent;
+        this.emit('rightClick', mouseEvent);
       }
     });
 
@@ -591,7 +604,7 @@ export class PixiGraph<
     });
     node.on('rightup', (event: MouseEvent) => {
       if (this.mousedownNodeKey === nodeKey) {
-        this.emit('nodeRightClick', event, nodeKey, node.nodeGfx.getBounds());
+        this.emit('nodeRightClick', event, nodeKey);
       }
       this.mousedownNodeKey = null;
     });

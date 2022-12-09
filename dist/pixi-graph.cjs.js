@@ -560,6 +560,12 @@ var PixiGraph = /** @class */ (function (_super) {
                 _this.mouseDownPosition = null;
             }
         });
+        _this.viewport.on('rightup', function (event) {
+            if (event.target === _this.viewport) {
+                var mouseEvent = event.data.originalEvent;
+                _this.emit('rightClick', mouseEvent);
+            }
+        });
         // create layers
         _this.edgeLayer = new display.Container();
         _this.frontEdgeLayer = new display.Container();
@@ -896,7 +902,7 @@ var PixiGraph = /** @class */ (function (_super) {
         });
         node.on('rightup', function (event) {
             if (_this.mousedownNodeKey === nodeKey) {
-                _this.emit('nodeRightClick', event, nodeKey, node.nodeGfx.getBounds());
+                _this.emit('nodeRightClick', event, nodeKey);
             }
             _this.mousedownNodeKey = null;
         });

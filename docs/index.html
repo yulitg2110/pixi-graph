@@ -177,12 +177,13 @@
           selectStyle,
           resources,
         });
+        pixiGraph.on('rightClick', (event) => console.log('rightClick', event));
         pixiGraph.on('nodeClick', (event, nodeKey) => console.log('nodeClick', event, nodeKey));
         // pixiGraph.on('nodeDoubleClick', (event, nodeKey) => console.log('nodeDoubleClick', event, nodeKey));
-        // pixiGraph.on('nodeRightClick', (event, nodeKey) => console.log('nodeRightClick', event, nodeKey));
-        pixiGraph.on('nodeMousemove', (event, nodeKey) => console.log('nodeMousemove', event, nodeKey));
-        // pixiGraph.on('nodeMouseover', (event, nodeKey) => console.log('nodeMouseover', event, nodeKey));
-        // pixiGraph.on('nodeMouseout', (event, nodeKey) => console.log('nodeMouseout', event, nodeKey));
+        pixiGraph.on('nodeRightClick', (event, nodeKey) => console.log('nodeRightClick', event, nodeKey));
+        // pixiGraph.on('nodeMousemove', (event, nodeKey) => console.log('nodeMousemove', event, nodeKey));
+        pixiGraph.on('nodeMouseover', (event, nodeKey) => console.log('nodeMouseover', event, nodeKey));
+        pixiGraph.on('nodeMouseout', (event, nodeKey) => console.log('nodeMouseout', event, nodeKey));
         // pixiGraph.on('nodeMousedown', (event, nodeKey) => console.log('nodeMousedown', event, nodeKey));
         // pixiGraph.on('nodeMouseup', (event, nodeKey) => console.log('nodeMouseup', event, nodeKey));
         // pixiGraph.on('edgeClick', (event, edgeKey) => console.log('edgeClick', event, edgeKey));

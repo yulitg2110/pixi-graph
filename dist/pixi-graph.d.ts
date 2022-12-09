@@ -67,9 +67,10 @@ interface GraphOptions<NodeAttributes extends BaseNodeAttributes = BaseNodeAttri
     resources?: IAddOptions[];
 }
 interface PixiGraphEvents {
+    rightClick: (event: MouseEvent) => void;
     nodeClick: (event: MouseEvent, nodeKey: string) => void;
     nodeDoubleClick: (event: MouseEvent, nodeKey: string) => void;
-    nodeRightClick: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
+    nodeRightClick: (event: MouseEvent, nodeKey: string) => void;
     nodeMousemove: (event: MouseEvent, nodeKey: string) => void;
     nodeMouseover: (event: MouseEvent, nodeKey: string, rect: Rectangle) => void;
     nodeMouseout: (event: MouseEvent, nodeKey: string) => void;

@@ -45826,6 +45826,12 @@ if (vType < 0.5) {
                     _this.mouseDownPosition = null;
                 }
             });
+            _this.viewport.on('rightup', function (event) {
+                if (event.target === _this.viewport) {
+                    var mouseEvent = event.data.originalEvent;
+                    _this.emit('rightClick', mouseEvent);
+                }
+            });
             // create layers
             _this.edgeLayer = new Container();
             _this.frontEdgeLayer = new Container();
@@ -46162,7 +46168,7 @@ if (vType < 0.5) {
             });
             node.on('rightup', function (event) {
                 if (_this.mousedownNodeKey === nodeKey) {
-                    _this.emit('nodeRightClick', event, nodeKey, node.nodeGfx.getBounds());
+                    _this.emit('nodeRightClick', event, nodeKey);
                 }
                 _this.mousedownNodeKey = null;
             });
