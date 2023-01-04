@@ -111,7 +111,10 @@ export class PixiGraph<
   private frontNodeLabelLayer: Container;
   private nodeKeyToNodeObject = new Map<string, PixiNode>();
   private edgeKeyToEdgeObject = new Map<string, PixiEdge>();
+
   private selectNodeKeys = new Set<string>();
+
+  private parallelEdgeMap = new Map<string, number>();
 
   private mousedownNodeKey: string | null = null;
   private mousedownEdgeKey: string | null = null;
@@ -322,13 +325,28 @@ export class PixiGraph<
     this.viewport.fit(true);
   }
 
+  private calculateParallelEdge() {
+    let parallelEdgeMap = new Map<string, number>();
+    this.graph.forEachEdge(
+      (edgeKey: string, _edgeAttributes: EdgeAttributes, sourceNodeKey: string, targetNodeKey: string) => {
+        const key = `${sourceNodeKey}_${targetNodeKey}`;
+        const count = (parallelEdgeMap.get(key) || 0) + 1;
+        parallelEdgeMap.set(key, count);
+        this.graph.setEdgeAttribute(edgeKey, 'parallelSeq', count);
+      }
+    );
+    this.parallelEdgeMap = parallelEdgeMap;
+  }
+
   private onGraphNodeAdded(data: { key: string; attributes: NodeAttributes }) {
+    this.calculateParallelEdge();
     const nodeKey = data.key;
     const nodeAttributes = data.attributes;
     this.createNode(nodeKey, nodeAttributes);
   }
 
   private onGraphEdgeAdded(data: { key: string; attributes: EdgeAttributes; source: string; target: string }) {
+    this.calculateParallelEdge();
     const edgeKey = data.key;
     const edgeAttributes = data.attributes;
     const sourceNodeKey = data.source;
@@ -339,11 +357,13 @@ export class PixiGraph<
   }
 
   private onGraphNodeDropped(data: { key: string }) {
+    this.calculateParallelEdge();
     const nodeKey = data.key;
     this.dropNode(nodeKey);
   }
 
   private onGraphEdgeDropped(data: { key: string }) {
+    this.calculateParallelEdge();
     const edgeKey = data.key;
     this.dropEdge(edgeKey);
   }
@@ -562,6 +582,7 @@ export class PixiGraph<
   }
 
   private createGraph() {
+    this.calculateParallelEdge();
     this.graph.forEachNode(this.createNode.bind(this));
     this.graph.forEachEdge(this.createEdge.bind(this));
 
@@ -773,6 +794,10 @@ export class PixiGraph<
     _sourceNodeAttributes: NodeAttributes,
     targetNodeAttributes: NodeAttributes
   ) {
+    const key = `${sourceNodeKey}_${targetNodeKey}`;
+    const parallelEdgeCount = this.parallelEdgeMap.get(key) || 0;
+    const parallelSeq = this.graph.getEdgeAttribute(edgeKey, 'parallelSeq') as number;
+
     const isDirected = this.graph.isDirected(edgeKey);
 
     const edge = this.edgeKeyToEdgeObject.get(edgeKey)!;
@@ -788,7 +813,15 @@ export class PixiGraph<
     const edgeStyleDefinitions = [DEFAULT_STYLE.edge, this.style.edge, edge.hovered ? this.hoverStyle.edge : undefined];
     const edgeStyle = resolveStyleDefinitions(edgeStyleDefinitions, edgeAttributes);
 
-    edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle);
+    edge.updatePosition(
+      sourceNodePosition,
+      targetNodePosition,
+      nodeStyle,
+      edgeStyle,
+      isDirected,
+      parallelSeq,
+      parallelEdgeCount
+    );
 
     edge.updateStyle(edgeStyle, this.textureCache, isDirected);
   }

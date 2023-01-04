@@ -49,7 +49,10 @@ export function updatePosition(
   sourceNodePosition: IPointData,
   targetNodePosition: IPointData,
   nodeStyle: NodeStyle,
-  edgeStyle: EdgeStyle
+  edgeStyle: EdgeStyle,
+  _isDirected: boolean,
+  _parallelSeq: number,
+  _parallelEdgeCount: number
 ) {
   const nodeSize = nodeStyle.size;
 
@@ -157,10 +160,11 @@ export function updateEdgeVisibility(edgeGfx: Container, zoomStep: number) {
   edgeCurveArrow.visible = false;
 }
 
-// 1 draw curve
-// 2 curve + arrow
-// 3 multi curve between nodes
-// 4 self loop
+// 1 multi curve between nodes
+//  render pipeline to calculate parallel page
+//  curve start/end points and heights (based)
+
+// 2 self loop
 //    https://blogs.sitepointstatic.com/examples/tech/canvas-curves/bezier-curve.html
 // 5 self loop + arrow
 // 6 multi loop
