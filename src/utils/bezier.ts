@@ -63,3 +63,21 @@ export function getQuadraticAngle(
   const dy = 2 * (1 - t) * (cp1y - sy) + 2 * t * (ey - cp1y);
   return -Math.atan2(dx, dy) + 0.5 * Math.PI;
 }
+
+export function getQuadraticStartEndPoint(
+  nodeSize: number,
+  degree: number,
+  sx: number,
+  sy: number,
+  ex: number,
+  ey: number
+) {
+  const radian = (degree / 180) * Math.PI;
+
+  return {
+    sx: sx + nodeSize * Math.sin(radian),
+    sy: sy + nodeSize * Math.cos(radian),
+    ex: ex + nodeSize * Math.sin(radian) * -1,
+    ey: ey + nodeSize * Math.cos(radian),
+  };
+}

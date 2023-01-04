@@ -7,7 +7,7 @@ import { IPointData } from '@pixi/math';
 
 import { colorToPixi } from '../utils/color';
 import { EdgeStyle, NodeStyle } from '../utils/style';
-import { getQuadraticAngle, getQuadraticBezierXY } from '../utils/bezier';
+import { getQuadraticAngle, getQuadraticBezierXY, getQuadraticStartEndPoint } from '../utils/bezier';
 import { TextureCache } from '../texture-cache';
 
 // const DELIMETER = '::';
@@ -19,7 +19,7 @@ const EDGE_ARROW = 'EDGE_ARROW';
 const EDGE_CURVE = 'EDGE_CURVE';
 const EDGE_CURVE_ARROW = 'EDGE_CURVE_ARROW';
 
-const ARROW_SIZE = 8;
+const ARROW_SIZE = 6;
 
 export function createEdge(edgeGfx: Container) {
   // edgeGfx -> edgeLine
@@ -62,40 +62,43 @@ export function updatePosition(
 
   // edgeGfx -> edgeArrow
   const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Graphics;
-  edgeArrow.x = length / 2 - nodeSize - ARROW_SIZE;
+  edgeArrow.x = length / 2 - nodeSize;
   edgeArrow.beginFill(color, alpha, true);
-  edgeArrow.moveTo(-ARROW_SIZE, -ARROW_SIZE);
-  edgeArrow.lineTo(ARROW_SIZE, 0);
-  edgeArrow.lineTo(-ARROW_SIZE, ARROW_SIZE);
-  edgeArrow.lineTo(-ARROW_SIZE, -ARROW_SIZE);
+  edgeArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+  edgeArrow.lineTo(0, 0);
+  edgeArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+  edgeArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
   edgeArrow.closePath();
   edgeArrow.endFill();
 
   // edgeGfx -> edgeCurve
-  const curveHeight = length * 0.35;
   const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
+
+  const { sx, sy, ex, ey } = getQuadraticStartEndPoint(nodeSize, 30, -length / 2, 0, length / 2, 0);
+  const curveHeight = length * 0.4 + sy;
+
   // only do clear when node position changed
   edgeCurve.clear();
   edgeCurve.lineStyle({ width: 1, color, alpha });
-  edgeCurve.moveTo(-length / 2, 0);
-  edgeCurve.quadraticCurveTo(0, curveHeight, length / 2, 0);
+  edgeCurve.moveTo(sx, sy);
+  edgeCurve.quadraticCurveTo(0, curveHeight, ex, ey);
 
   // edgeGfx -> edgeCurveArrow
   const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
   // only do clear when node position changed
   edgeCurveArrow.clear();
-  const coord = getQuadraticBezierXY(0.9, -length / 2, 0, 0, curveHeight, length / 2, 0);
-  const angle = getQuadraticAngle(0.9, -length / 2, 0, 0, curveHeight, length / 2, 0);
+  const coord = getQuadraticBezierXY(1, sx, sy, 0, curveHeight, ex, ey);
+  const angle = getQuadraticAngle(1, sx, sy, 0, curveHeight, ex, ey);
 
   edgeCurveArrow.x = coord.x;
   edgeCurveArrow.y = coord.y;
   edgeCurveArrow.rotation = angle;
 
   edgeCurveArrow.beginFill(color, alpha, true);
-  edgeCurveArrow.moveTo(-ARROW_SIZE, -ARROW_SIZE);
-  edgeCurveArrow.lineTo(ARROW_SIZE, 0);
-  edgeCurveArrow.lineTo(-ARROW_SIZE, ARROW_SIZE);
-  edgeCurveArrow.lineTo(-ARROW_SIZE, -ARROW_SIZE);
+  edgeCurveArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+  edgeCurveArrow.lineTo(0, 0);
+  edgeCurveArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+  edgeCurveArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
   edgeCurveArrow.closePath();
   edgeCurveArrow.endFill();
 }
@@ -138,12 +141,12 @@ export function updateEdgeVisibility(edgeGfx: Container, zoomStep: number) {
   // edgeGfx -> edgeLine
   const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
   edgeLine.visible = zoomStep >= 1;
-  edgeLine.visible = true;
+  // edgeLine.visible = false;
 
   // edgeGFX -> edgeArrow
   const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
   edgeArrow.visible = zoomStep >= 3;
-  edgeArrow.visible = true;
+  // edgeArrow.visible = false;
 
   // edgeGfx -> edgeCurve
   const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
