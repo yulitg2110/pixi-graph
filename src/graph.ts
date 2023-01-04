@@ -176,7 +176,7 @@ export class PixiGraph<
       .pinch()
       .wheel()
       .decelerate()
-      .clampZoom({ maxScale: 2.5 });
+      .clampZoom({ maxScale: 5 });
     this.app.stage.addChild(this.viewport);
     this.viewport.on('mousedown', (event: InteractionEvent) => {
       if (event.target === this.viewport) {
@@ -785,10 +785,11 @@ export class PixiGraph<
     const nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node];
     const nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, targetNodeAttributes);
 
-    edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle);
-
     const edgeStyleDefinitions = [DEFAULT_STYLE.edge, this.style.edge, edge.hovered ? this.hoverStyle.edge : undefined];
     const edgeStyle = resolveStyleDefinitions(edgeStyleDefinitions, edgeAttributes);
+
+    edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle);
+
     edge.updateStyle(edgeStyle, this.textureCache, isDirected);
   }
 

@@ -46,7 +46,12 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     return edgeGfx;
   }
 
-  updatePosition(sourceNodePosition: IPointData, targetNodePosition: IPointData, nodeStyle: NodeStyle) {
+  updatePosition(
+    sourceNodePosition: IPointData,
+    targetNodePosition: IPointData,
+    nodeStyle: NodeStyle,
+    edgeStyle: EdgeStyle
+  ) {
     const position = {
       x: (sourceNodePosition.x + targetNodePosition.x) / 2,
       y: (sourceNodePosition.y + targetNodePosition.y) / 2,
@@ -57,7 +62,7 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     );
     this.edgeGfx.position.copyFrom(position);
     this.edgeGfx.rotation = rotation;
-    updatePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle);
+    updatePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle);
   }
 
   updateStyle(edgeStyle: EdgeStyle, textureCache: TextureCache, isDirected: boolean) {
