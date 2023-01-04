@@ -56,9 +56,9 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
       x: (sourceNodePosition.x + targetNodePosition.x) / 2,
       y: (sourceNodePosition.y + targetNodePosition.y) / 2,
     };
-    const rotation = -Math.atan2(
-      targetNodePosition.x - sourceNodePosition.x,
-      targetNodePosition.y - sourceNodePosition.y
+    const rotation = Math.atan2(
+      targetNodePosition.y - sourceNodePosition.y,
+      targetNodePosition.x - sourceNodePosition.x
     );
     this.edgeGfx.position.copyFrom(position);
     this.edgeGfx.rotation = rotation;

@@ -176,7 +176,7 @@ export class PixiGraph<
       .pinch()
       .wheel()
       .decelerate()
-      .clampZoom({ maxScale: 5 });
+      .clampZoom({ maxScale: 2.5 });
     this.app.stage.addChild(this.viewport);
     this.viewport.on('mousedown', (event: InteractionEvent) => {
       if (event.target === this.viewport) {
