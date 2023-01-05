@@ -81,3 +81,23 @@ export function getQuadraticStartEndPoint(
     ey: ey + nodeSize * Math.sin(radian),
   };
 }
+
+export function getLoopEdgeBezierPoint(nodeSize: number, x: number, y: number) {
+  const len = 75;
+
+  // x goes from left to right
+  // y goes from up to down
+  return {
+    sx: x,
+    sy: y - nodeSize,
+
+    cp1x: x,
+    cp1y: y - nodeSize - len,
+
+    cp2x: x - nodeSize - len,
+    cp2y: y,
+
+    ex: x - nodeSize,
+    ey: y,
+  };
+}

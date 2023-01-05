@@ -52,6 +52,7 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     nodeStyle: NodeStyle,
     edgeStyle: EdgeStyle,
     isDirected: boolean,
+    isSelfLoop: boolean,
     parallelEdgeCount: number,
     parallelSeq: number
   ) {
@@ -72,6 +73,7 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
       nodeStyle,
       edgeStyle,
       isDirected,
+      isSelfLoop,
       parallelEdgeCount,
       parallelSeq
     );
@@ -81,13 +83,14 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     edgeStyle: EdgeStyle,
     textureCache: TextureCache,
     isDirected: boolean,
+    isSelfLoop: boolean,
     parallelEdgeCount: number,
     parallelSeq: number
   ) {
-    updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected, parallelEdgeCount, parallelSeq);
+    updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq);
   }
 
-  updateVisibility(zoomStep: number, parallelEdgeCount: number, parallelSeq: number) {
-    updateEdgeVisibility(this.edgeGfx, zoomStep, parallelEdgeCount, parallelSeq);
+  updateVisibility(zoomStep: number, isSelfLoop: boolean, parallelEdgeCount: number, parallelSeq: number) {
+    updateEdgeVisibility(this.edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq);
   }
 }

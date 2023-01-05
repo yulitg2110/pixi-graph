@@ -4,12 +4,21 @@ import { Texture } from '@pixi/core';
 import '@pixi/mixin-get-child-by-name';
 import { SmoothGraphics as Graphics } from '@pixi/graphics-smooth';
 import { IPointData } from '@pixi/math';
+import { GRAPHICS_CURVES } from '@pixi/graphics';
 
 import { colorToPixi } from '../utils/color';
 import { EdgeStyle, NodeStyle } from '../utils/style';
-import { getQuadraticAngle, getQuadraticBezierXY, getQuadraticStartEndPoint } from '../utils/bezier';
+import {
+  getCubicBezierAngle,
+  getCubicBezierXY,
+  getQuadraticAngle,
+  getQuadraticBezierXY,
+  getQuadraticStartEndPoint,
+  getLoopEdgeBezierPoint,
+} from '../utils/bezier';
 import { TextureCache } from '../texture-cache';
 
+GRAPHICS_CURVES.minSegments = 8 * 4;
 // const DELIMETER = '::';
 // const WHITE = 0xffffff;
 
@@ -51,6 +60,7 @@ export function updatePosition(
   nodeStyle: NodeStyle,
   edgeStyle: EdgeStyle,
   isDirected: boolean,
+  isSelfLoop: boolean,
   parallelEdgeCount: number,
   parallelSeq: number
 ) {
@@ -67,6 +77,41 @@ export function updatePosition(
   edgeArrow.visible = false;
   edgeCurve.visible = false;
   edgeCurveArrow.visible = false;
+
+  if (isSelfLoop) {
+    edgeCurve.visible = true;
+    edgeCurveArrow.visible = true;
+
+    console.log('getLoopEdgeBezierPoint', sourceNodePosition);
+
+    const { sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey } = getLoopEdgeBezierPoint(nodeSize, 0, 0);
+
+    // only do clear when node position changed
+    edgeCurve.clear();
+    edgeCurve.lineStyle({ width: 1, color, alpha });
+    edgeCurve.moveTo(sx, sy);
+    edgeCurve.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey);
+
+    // edgeGfx -> edgeCurveArrow
+    // only do clear when node position changed
+    edgeCurveArrow.clear();
+    const coord = getCubicBezierXY(1, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey);
+    const angle = getCubicBezierAngle(1, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey);
+
+    edgeCurveArrow.x = coord.x;
+    edgeCurveArrow.y = coord.y;
+    edgeCurveArrow.rotation = angle;
+
+    edgeCurveArrow.beginFill(color, alpha, true);
+    edgeCurveArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+    edgeCurveArrow.lineTo(0, 0);
+    edgeCurveArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+    edgeCurveArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+    edgeCurveArrow.closePath();
+    edgeCurveArrow.endFill();
+
+    return;
+  }
 
   // edgeGfx -> edgeArrow
   if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
@@ -129,9 +174,13 @@ export function updateEdgeStyle(
   edgeStyle: EdgeStyle,
   _textureCache: TextureCache,
   _isDirected: boolean,
+  isSelfLoop: boolean,
   parallelEdgeCount: number,
   parallelSeq: number
 ) {
+  if (isSelfLoop) {
+    return;
+  }
   if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
     // edgeGfx -> edgeLine
     const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
@@ -164,6 +213,7 @@ export function updateEdgeStyle(
 export function updateEdgeVisibility(
   edgeGfx: Container,
   zoomStep: number,
+  isSelfLoop: boolean,
   parallelEdgeCount: number,
   parallelSeq: number
 ) {
@@ -171,6 +221,19 @@ export function updateEdgeVisibility(
   const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
   const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
   const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
+
+  if (isSelfLoop) {
+    // edgeGfx -> edgeCurve
+    edgeCurve.visible = zoomStep >= 2;
+    // edgeGfx -> edgeCurveArrow
+    edgeCurveArrow.visible = zoomStep >= 3;
+
+    // hide line
+    edgeLine.visible = false;
+    edgeArrow.visible = false;
+    return;
+  }
+
   if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
     // edgeGfx -> edgeLine
     edgeLine.visible = zoomStep >= 2;
@@ -192,7 +255,6 @@ export function updateEdgeVisibility(
   }
 }
 
-// 1 fix bug
 // 2 self loop
 //    https://blogs.sitepointstatic.com/examples/tech/canvas-curves/bezier-curve.html
 //    先简单选点
