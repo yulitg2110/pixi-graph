@@ -82,9 +82,7 @@ export function updatePosition(
     edgeCurve.visible = true;
     edgeCurveArrow.visible = true;
 
-    console.log('getLoopEdgeBezierPoint', sourceNodePosition);
-
-    const { sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey } = getLoopEdgeBezierPoint(nodeSize, 0, 0);
+    const { sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey } = getLoopEdgeBezierPoint(nodeSize, parallelSeq, 0, 0);
 
     // only do clear when node position changed
     edgeCurve.clear();
@@ -255,16 +253,8 @@ export function updateEdgeVisibility(
   }
 }
 
-// 2 self loop
-//    https://blogs.sitepointstatic.com/examples/tech/canvas-curves/bezier-curve.html
-//    先简单选点
-//      start/end point
-//      ctrl point
-//    cubic bezier
-// 3 self loop + arrow
-// 4 multi loop
-// 5 lod => curve to line when no detail needed
-// 6 hit testing (hover and click)
+// 1 lod => curve to line when no detail needed
+// 2 hit testing (hover and click)
 
 // https://codepen.io/IndependentSw/pen/mLZzGj
 //  https://math.stackexchange.com/questions/885292/how-to-take-derivative-of-bezier-function

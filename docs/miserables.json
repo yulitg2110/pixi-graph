@@ -79,6 +79,9 @@
     { "id": "Mme.Hucheloup", "group": 8 }
   ],
   "links": [
+    { "source": "Myriel", "target": "Myriel", "value": 1 },
+    { "source": "Myriel", "target": "Myriel", "value": 1 },
+    { "source": "Myriel", "target": "Myriel", "value": 1 },
     { "source": "Napoleon", "target": "Myriel", "value": 1 },
     { "source": "Napoleon", "target": "Myriel", "value": 2 },
     { "source": "Napoleon", "target": "Myriel", "value": 3 },

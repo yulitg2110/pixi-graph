@@ -82,22 +82,35 @@ export function getQuadraticStartEndPoint(
   };
 }
 
-export function getLoopEdgeBezierPoint(nodeSize: number, x: number, y: number) {
-  const len = 75;
+export function getLoopEdgeBezierPoint(nodeSize: number, parallelSeq: number, x: number, y: number) {
+  const len = 75 * parallelSeq;
+
+  const degreeStart = 180 - (parallelSeq - 1) * 5;
+  const radianStart = (degreeStart / 180) * Math.PI;
+  const degreeEnd = 270 + (parallelSeq - 1) * 5;
+  const radianEnd = (degreeEnd / 180) * Math.PI;
 
   // x goes from left to right
   // y goes from up to down
+
+  const sx = x + nodeSize * Math.cos(radianStart);
+  const sy = y + nodeSize * Math.sin(radianStart);
+  const ex = x + nodeSize * Math.cos(radianEnd);
+  const ey = y + nodeSize * Math.sin(radianEnd);
+
+  const cp1x = x + (nodeSize + len) * Math.cos(radianStart);
+  const cp1y = y + (nodeSize + len) * Math.sin(radianStart);
+  const cp2x = x + (nodeSize + len) * Math.cos(radianEnd);
+  const cp2y = y + (nodeSize + len) * Math.sin(radianEnd);
+
   return {
-    sx: x,
-    sy: y - nodeSize,
-
-    cp1x: x,
-    cp1y: y - nodeSize - len,
-
-    cp2x: x - nodeSize - len,
-    cp2y: y,
-
-    ex: x - nodeSize,
-    ey: y,
+    sx,
+    sy,
+    cp1x,
+    cp1y,
+    cp2x,
+    cp2y,
+    ex,
+    ey,
   };
 }
