@@ -253,12 +253,12 @@ export function updateEdgeVisibility(
   }
 }
 
-// 1 lod => curve to line when no detail needed
+// 1 lod for curve
 // 2 hit testing (hover and click)
-
-// https://codepen.io/IndependentSw/pen/mLZzGj
-//  https://math.stackexchange.com/questions/885292/how-to-take-derivative-of-bezier-function
-//  https://fr.khanacademy.org/computer-programming/beziertangenta-b-c-d-t/4736929853603840
+// 3 edge label
+//    line
+//    parallel
+//    self loop
 
 // https://javascript.info/bezier-curve
 // https://pomax.github.io/bezierinfo/

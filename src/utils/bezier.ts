@@ -87,11 +87,11 @@ export function getLoopEdgeBezierPoint(nodeSize: number, parallelSeq: number, x:
 
   // x goes from left to right
   // y goes from up to down
-  // so we choose start at 180 and end at 270
+  // so we choose start at 270 and end at 180
 
-  const degreeStart = 180 - (parallelSeq - 1) * 5;
+  const degreeStart = 270 + (parallelSeq - 1) * 5;
   const radianStart = (degreeStart / 180) * Math.PI;
-  const degreeEnd = 270 + (parallelSeq - 1) * 5;
+  const degreeEnd = 180 - (parallelSeq - 1) * 5;
   const radianEnd = (degreeEnd / 180) * Math.PI;
 
   const sx = x + nodeSize * Math.cos(radianStart);
