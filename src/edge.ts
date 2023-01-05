@@ -52,8 +52,8 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     nodeStyle: NodeStyle,
     edgeStyle: EdgeStyle,
     isDirected: boolean,
-    parallelSeq: number,
-    parallelEdgeCount: number
+    parallelEdgeCount: number,
+    parallelSeq: number
   ) {
     const position = {
       x: (sourceNodePosition.x + targetNodePosition.x) / 2,
@@ -72,13 +72,19 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
       nodeStyle,
       edgeStyle,
       isDirected,
-      parallelSeq,
-      parallelEdgeCount
+      parallelEdgeCount,
+      parallelSeq
     );
   }
 
-  updateStyle(edgeStyle: EdgeStyle, textureCache: TextureCache, isDirected: boolean) {
-    updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected);
+  updateStyle(
+    edgeStyle: EdgeStyle,
+    textureCache: TextureCache,
+    isDirected: boolean,
+    parallelEdgeCount: number,
+    parallelSeq: number
+  ) {
+    updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected, parallelEdgeCount, parallelSeq);
   }
 
   updateVisibility(zoomStep: number, parallelEdgeCount: number, parallelSeq: number) {

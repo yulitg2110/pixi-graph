@@ -19,7 +19,7 @@ const EDGE_ARROW = 'EDGE_ARROW';
 const EDGE_CURVE = 'EDGE_CURVE';
 const EDGE_CURVE_ARROW = 'EDGE_CURVE_ARROW';
 
-const ARROW_SIZE = 6;
+const ARROW_SIZE = 5;
 
 export function createEdge(edgeGfx: Container) {
   // edgeGfx -> edgeLine
@@ -51,22 +51,33 @@ export function updatePosition(
   nodeStyle: NodeStyle,
   edgeStyle: EdgeStyle,
   isDirected: boolean,
-  parallelSeq: number,
-  parallelEdgeCount: number
+  parallelEdgeCount: number,
+  parallelSeq: number
 ) {
   const nodeSize = nodeStyle.size;
   const [color, alpha] = colorToPixi(edgeStyle.color);
-
   const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
 
+  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
+  const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Graphics;
+  const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
+  const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
+
+  edgeLine.visible = false;
+  edgeArrow.visible = false;
+  edgeCurve.visible = false;
+  edgeCurveArrow.visible = false;
+
   // edgeGfx -> edgeArrow
-  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === 1)) {
+  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+    edgeLine.visible = true;
+    edgeArrow.visible = true;
+
     // edgeGfx -> edgeLine
-    const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
     edgeLine.width = length;
 
     if (isDirected) {
-      const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Graphics;
+      edgeArrow.clear();
       edgeArrow.x = length / 2 - nodeSize;
       edgeArrow.beginFill(color, alpha, true);
       edgeArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
@@ -77,20 +88,15 @@ export function updatePosition(
       edgeArrow.endFill();
     }
   } else {
+    edgeCurve.visible = true;
+    edgeCurveArrow.visible = true;
+
     // edgeGfx -> edgeCurve
-    const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
-
     const dir = parallelSeq % 2 === 0 ? 1 : -1;
+    const seqInDir = Math.ceil(parallelSeq / 2);
 
-    const { sx, sy, ex, ey } = getQuadraticStartEndPoint(
-      nodeSize,
-      5 * (parallelSeq / 2) * dir,
-      -length / 2,
-      0,
-      length / 2,
-      0
-    );
-    const curveHeight = length * 0.1 * (parallelSeq / 2) * dir + sy;
+    const { sx, sy, ex, ey } = getQuadraticStartEndPoint(nodeSize, 5 * seqInDir * dir, -length / 2, 0, length / 2, 0);
+    const curveHeight = length * 0.1 * seqInDir * dir;
 
     // only do clear when node position changed
     edgeCurve.clear();
@@ -99,7 +105,6 @@ export function updatePosition(
     edgeCurve.quadraticCurveTo(0, curveHeight, ex, ey);
 
     // edgeGfx -> edgeCurveArrow
-    const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
     // only do clear when node position changed
     edgeCurveArrow.clear();
     const coord = getQuadraticBezierXY(1, sx, sy, 0, curveHeight, ex, ey);
@@ -123,13 +128,16 @@ export function updateEdgeStyle(
   edgeGfx: Container,
   edgeStyle: EdgeStyle,
   _textureCache: TextureCache,
-  _isDirected: boolean
+  _isDirected: boolean,
+  parallelEdgeCount: number,
+  parallelSeq: number
 ) {
-  // edgeGfx -> edgeLine
-  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
-  edgeLine.height = edgeStyle.width;
-  [edgeLine.tint, edgeLine.alpha] = colorToPixi(edgeStyle.color);
-
+  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+    // edgeGfx -> edgeLine
+    const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
+    edgeLine.height = edgeStyle.width;
+    [edgeLine.tint, edgeLine.alpha] = colorToPixi(edgeStyle.color);
+  }
   // if (isDirected) {
   //   // edgeGfx -> edgeArrow
   //   const edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER);
@@ -153,42 +161,48 @@ export function updateEdgeStyle(
   // }
 }
 
-// todo(lin)
-// also needs to pass parallel information to here
 export function updateEdgeVisibility(
   edgeGfx: Container,
   zoomStep: number,
   parallelEdgeCount: number,
   parallelSeq: number
 ) {
-  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === 1)) {
+  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
+  const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
+  const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
+  const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
+  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
     // edgeGfx -> edgeLine
-    const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
-    edgeLine.visible = zoomStep >= 1;
-
+    edgeLine.visible = zoomStep >= 2;
     // edgeGFX -> edgeArrow
-    const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
     edgeArrow.visible = zoomStep >= 3;
+
+    // hide curve
+    edgeCurve.visible = false;
+    edgeCurveArrow.visible = false;
   } else {
     // edgeGfx -> edgeCurve
-    const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
-    edgeCurve.visible = zoomStep >= 1;
-
+    edgeCurve.visible = zoomStep >= 2;
     // edgeGfx -> edgeCurveArrow
-    const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
     edgeCurveArrow.visible = zoomStep >= 3;
+
+    // hide line
+    edgeLine.visible = false;
+    edgeArrow.visible = false;
   }
 }
 
-// 1 multi curve between nodes
-//  curve start/end points and heights (based)
+// 1 fix bug
 // 2 self loop
 //    https://blogs.sitepointstatic.com/examples/tech/canvas-curves/bezier-curve.html
+//    先简单选点
+//      start/end point
+//      ctrl point
+//    cubic bezier
 // 3 self loop + arrow
-
-// 6 multi loop
-// 7 hit testing (hover and click)
-// 8 lod => curve to line when no detail needed
+// 4 multi loop
+// 5 lod => curve to line when no detail needed
+// 6 hit testing (hover and click)
 
 // https://codepen.io/IndependentSw/pen/mLZzGj
 //  https://math.stackexchange.com/questions/885292/how-to-take-derivative-of-bezier-function

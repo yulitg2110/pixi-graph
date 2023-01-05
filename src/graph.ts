@@ -330,7 +330,6 @@ export class PixiGraph<
 
   private calculateParallelEdge() {
     let parallelEdgeMap = new Map<string, number>();
-    console.log('calculateParallelEdge');
     this.graph.forEachEdge(
       (edgeKey: string, _edgeAttributes: EdgeAttributes, sourceNodeKey: string, targetNodeKey: string) => {
         const key = `${sourceNodeKey}_${targetNodeKey}`;
@@ -801,8 +800,6 @@ export class PixiGraph<
     const parallelEdgeCount = this.parallelEdgeMap.get(key) || 1;
     const parallelSeq = this.graph.getEdgeAttribute(edgeKey, 'parallelSeq') as number;
 
-    console.log(key, parallelEdgeCount, parallelSeq);
-
     const isDirected = this.graph.isDirected(edgeKey);
 
     const edge = this.edgeKeyToEdgeObject.get(edgeKey)!;
@@ -824,11 +821,11 @@ export class PixiGraph<
       nodeStyle,
       edgeStyle,
       isDirected,
-      parallelSeq,
-      parallelEdgeCount
+      parallelEdgeCount,
+      parallelSeq
     );
 
-    edge.updateStyle(edgeStyle, this.textureCache, isDirected);
+    edge.updateStyle(edgeStyle, this.textureCache, isDirected, parallelEdgeCount, parallelSeq);
   }
 
   private updateGraphVisibility() {
