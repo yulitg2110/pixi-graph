@@ -139,7 +139,7 @@ export function updatePosition(
     const seqInDir = Math.ceil(parallelSeq / 2);
 
     const { sx, sy, ex, ey } = getQuadraticStartEndPoint(nodeSize, 5 * seqInDir * dir, -length / 2, 0, length / 2, 0);
-    const curveHeight = length * 0.1 * seqInDir * dir;
+    const curveHeight = length * 0.25 * seqInDir * dir;
 
     // only do clear when node position changed
     edgeCurve.clear();
