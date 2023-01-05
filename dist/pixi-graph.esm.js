@@ -17,8 +17,9 @@ import { SmoothGraphics, settings, LINE_SCALE_MODE } from '@pixi/graphics-smooth
 import '@pixi/mixin-get-child-by-name';
 import { rgb2hex } from '@pixi/utils';
 import rgba from 'color-rgba';
+import { GRAPHICS_CURVES } from '@pixi/graphics';
 
-var WHITE$2 = 0xffffff;
+var WHITE$1 = 0xffffff;
 var TextType;
 (function (TextType) {
     TextType["TEXT"] = "TEXT";
@@ -33,7 +34,7 @@ function textToPixi(type, content, style) {
         text = new Text(content, {
             fontFamily: style.fontFamily,
             fontSize: style.fontSize,
-            fill: WHITE$2,
+            fill: WHITE$1,
         });
     }
     else if (type === TextType.BITMAP_TEXT) {
@@ -150,8 +151,8 @@ function colorToPixi(color) {
     return [pixiColor, alpha];
 }
 
-var DELIMETER$2 = '::';
-var WHITE$1 = 0xffffff;
+var DELIMETER$1 = '::';
+var WHITE = 0xffffff;
 var NODE_CIRCLE = 'NODE_CIRCLE';
 var NODE_CIRCLE_BORDER = 'NODE_CIRCLE_BORDER';
 var NODE_ICON = 'NODE_ICON';
@@ -177,17 +178,17 @@ function createNode(nodeGfx) {
 function updateNodeStyle(nodeGfx, nodeStyle, textureCache) {
     var _a, _b;
     var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
-    var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$2);
+    var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$1);
     var nodeCircleTexture = textureCache.get(nodeCircleTextureKey, function () {
         var graphics = new SmoothGraphics();
-        graphics.beginFill(WHITE$1, 1.0, true);
+        graphics.beginFill(WHITE, 1.0, true);
         graphics.drawCircle(nodeStyle.size, nodeStyle.size, nodeStyle.size);
         return graphics;
     });
-    var nodeCircleBorderTextureKey = [NODE_CIRCLE_BORDER, nodeStyle.size, nodeStyle.border.width].join(DELIMETER$2);
+    var nodeCircleBorderTextureKey = [NODE_CIRCLE_BORDER, nodeStyle.size, nodeStyle.border.width].join(DELIMETER$1);
     var nodeCircleBorderTexture = textureCache.get(nodeCircleBorderTextureKey, function () {
         var graphics = new SmoothGraphics();
-        graphics.lineStyle(nodeStyle.border.width, WHITE$1);
+        graphics.lineStyle(nodeStyle.border.width, WHITE);
         graphics.drawCircle(nodeOuterSize, nodeOuterSize, nodeStyle.size);
         return graphics;
     });
@@ -221,7 +222,7 @@ function updateNodeVisibility(nodeGfx, zoomStep) {
     }
 }
 
-var DELIMETER$1 = '::';
+var DELIMETER = '::';
 var NODE_LABEL_TEXT = 'NODE_LABEL_TEXT';
 function createNodeLabel(nodeLabelGfx) {
     // nodeLabelGfx -> nodeLabelText
@@ -237,7 +238,7 @@ function updateNodeLabelStyle(nodeLabelGfx, nodeStyle, textureCache) {
         nodeStyle.label.fontFamily,
         nodeStyle.label.fontSize,
         nodeStyle.label.content,
-    ].join(DELIMETER$1);
+    ].join(DELIMETER);
     var nodeLabelTextTexture = textureCache.get(nodeLabelTextTextureKey, function () {
         var text = textToPixi(nodeStyle.label.type, nodeStyle.label.content, {
             fontFamily: nodeStyle.label.fontFamily,
@@ -330,10 +331,61 @@ var PixiNode = /** @class */ (function (_super) {
     return PixiNode;
 }(TypedEmitter));
 
-var DELIMETER = '::';
-var WHITE = 0xffffff;
+/// refer:
+//  1: https://codepen.io/IndependentSw/pen/mLZzGj
+//  2: https://math.stackexchange.com/questions/885292/how-to-take-derivative-of-bezier-function
+function getCubicBezierXY(t, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey) {
+    return {
+        x: Math.pow(1 - t, 3) * sx + 3 * t * Math.pow(1 - t, 2) * cp1x + 3 * t * t * (1 - t) * cp2x + t * t * t * ex,
+        y: Math.pow(1 - t, 3) * sy + 3 * t * Math.pow(1 - t, 2) * cp1y + 3 * t * t * (1 - t) * cp2y + t * t * t * ey,
+    };
+}
+function getCubicBezierAngle(t, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey) {
+    var dx = Math.pow(1 - t, 2) * (cp1x - sx) + 2 * t * (1 - t) * (cp2x - cp1x) + t * t * (ex - cp2x);
+    var dy = Math.pow(1 - t, 2) * (cp1y - sy) + 2 * t * (1 - t) * (cp2y - cp1y) + t * t * (ey - cp2y);
+    return -Math.atan2(dx, dy) + 0.5 * Math.PI;
+}
+function getQuadraticBezierXY(t, sx, sy, cp1x, cp1y, ex, ey) {
+    return {
+        x: Math.pow(1 - t, 2) * sx + 2 * (1 - t) * t * cp1x + t * t * ex,
+        y: Math.pow(1 - t, 2) * sy + 2 * (1 - t) * t * cp1y + t * t * ey,
+    };
+}
+function getQuadraticAngle(t, sx, sy, cp1x, cp1y, ex, ey) {
+    var dx = 2 * (1 - t) * (cp1x - sx) + 2 * t * (ex - cp1x);
+    var dy = 2 * (1 - t) * (cp1y - sy) + 2 * t * (ey - cp1y);
+    return -Math.atan2(dx, dy) + 0.5 * Math.PI;
+}
+function getQuadraticStartEndPoint(nodeSize, degree, sx, sy, ex, ey) {
+    var radian = (degree / 180) * Math.PI;
+    return {
+        sx: sx + nodeSize * Math.cos(radian),
+        sy: sy + nodeSize * Math.sin(radian),
+        ex: ex + nodeSize * Math.cos(radian) * -1,
+        ey: ey + nodeSize * Math.sin(radian),
+    };
+}
+function getLoopEdgeBezierPoint(nodeSize, x, y) {
+    var len = 75;
+    return {
+        sx: x,
+        sy: y - nodeSize,
+        cp1x: x,
+        cp1y: y - nodeSize - len,
+        cp2x: x - nodeSize - len,
+        cp2y: y,
+        ex: x - nodeSize,
+        ey: y,
+    };
+}
+
+GRAPHICS_CURVES.minSegments = 8 * 4;
+// const DELIMETER = '::';
+// const WHITE = 0xffffff;
 var EDGE_LINE = 'EDGE_LINE';
 var EDGE_ARROW = 'EDGE_ARROW';
+var EDGE_CURVE = 'EDGE_CURVE';
+var EDGE_CURVE_ARROW = 'EDGE_CURVE_ARROW';
 var ARROW_SIZE = 5;
 function createEdge(edgeGfx) {
     // edgeGfx -> edgeLine
@@ -342,54 +394,186 @@ function createEdge(edgeGfx) {
     edgeLine.anchor.set(0.5);
     edgeGfx.addChild(edgeLine);
     // edgeGfx -> edgeArrow
-    var edgeArrow = new Sprite();
+    var edgeArrow = new SmoothGraphics();
     edgeArrow.name = EDGE_ARROW;
-    edgeArrow.anchor.set(0.5);
     edgeGfx.addChild(edgeArrow);
+    // edgeGfx -> edgeCurve
+    var edgeCurve = new SmoothGraphics();
+    edgeCurve.name = EDGE_CURVE;
+    edgeGfx.addChild(edgeCurve);
+    // edgeGfx -> edgeArrow
+    var edgeCurveArrow = new SmoothGraphics();
+    edgeCurveArrow.name = EDGE_CURVE_ARROW;
+    edgeGfx.addChild(edgeCurveArrow);
 }
-function updatePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle) {
+function updatePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
     var nodeSize = nodeStyle.size;
-    // edgeGfx -> edgeLine
+    var _a = colorToPixi(edgeStyle.color), color = _a[0], alpha = _a[1];
     var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
     var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
-    edgeLine.height = length - nodeSize * 2 - 4;
-    // edgeGfx -> edgeArrow
     var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
-    edgeArrow.y = length / 2 - nodeSize - ARROW_SIZE - 1;
-}
-function updateEdgeStyle(edgeGfx, edgeStyle, textureCache, isDirected) {
-    var _a, _b;
-    // edgeGfx -> edgeLine
-    var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
-    edgeLine.width = edgeStyle.width;
-    _a = colorToPixi(edgeStyle.color), edgeLine.tint = _a[0], edgeLine.alpha = _a[1];
-    if (isDirected) {
-        // edgeGfx -> edgeArrow
-        var edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER);
-        var edgeArrowTexture = textureCache.get(edgeArrowTextureKey, function () {
-            var graphics = new SmoothGraphics();
-            graphics.beginFill(WHITE, 1.0, true);
-            graphics.moveTo(0, ARROW_SIZE);
-            graphics.lineTo(ARROW_SIZE, -ARROW_SIZE);
-            graphics.lineTo(-ARROW_SIZE, -ARROW_SIZE);
-            graphics.lineTo(0, ARROW_SIZE);
-            graphics.closePath();
-            graphics.endFill();
-            return graphics;
-        });
-        var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
-        edgeArrow.texture = edgeArrowTexture;
-        _b = colorToPixi(edgeStyle.color), edgeArrow.tint = _b[0], edgeArrow.alpha = _b[1];
+    var edgeCurve = edgeGfx.getChildByName(EDGE_CURVE);
+    var edgeCurveArrow = edgeGfx.getChildByName(EDGE_CURVE_ARROW);
+    edgeLine.visible = false;
+    edgeArrow.visible = false;
+    edgeCurve.visible = false;
+    edgeCurveArrow.visible = false;
+    if (isSelfLoop) {
+        edgeCurve.visible = true;
+        edgeCurveArrow.visible = true;
+        console.log('getLoopEdgeBezierPoint', sourceNodePosition);
+        var _b = getLoopEdgeBezierPoint(nodeSize, 0, 0), sx = _b.sx, sy = _b.sy, cp1x = _b.cp1x, cp1y = _b.cp1y, cp2x = _b.cp2x, cp2y = _b.cp2y, ex = _b.ex, ey = _b.ey;
+        // only do clear when node position changed
+        edgeCurve.clear();
+        edgeCurve.lineStyle({ width: 1, color: color, alpha: alpha });
+        edgeCurve.moveTo(sx, sy);
+        edgeCurve.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey);
+        // edgeGfx -> edgeCurveArrow
+        // only do clear when node position changed
+        edgeCurveArrow.clear();
+        var coord = getCubicBezierXY(1, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey);
+        var angle = getCubicBezierAngle(1, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey);
+        edgeCurveArrow.x = coord.x;
+        edgeCurveArrow.y = coord.y;
+        edgeCurveArrow.rotation = angle;
+        edgeCurveArrow.beginFill(color, alpha, true);
+        edgeCurveArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+        edgeCurveArrow.lineTo(0, 0);
+        edgeCurveArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+        edgeCurveArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+        edgeCurveArrow.closePath();
+        edgeCurveArrow.endFill();
+        return;
+    }
+    // edgeGfx -> edgeArrow
+    if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+        edgeLine.visible = true;
+        edgeArrow.visible = true;
+        // edgeGfx -> edgeLine
+        edgeLine.width = length;
+        if (isDirected) {
+            edgeArrow.clear();
+            edgeArrow.x = length / 2 - nodeSize;
+            edgeArrow.beginFill(color, alpha, true);
+            edgeArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+            edgeArrow.lineTo(0, 0);
+            edgeArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+            edgeArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+            edgeArrow.closePath();
+            edgeArrow.endFill();
+        }
+    }
+    else {
+        edgeCurve.visible = true;
+        edgeCurveArrow.visible = true;
+        // edgeGfx -> edgeCurve
+        var dir = parallelSeq % 2 === 0 ? 1 : -1;
+        var seqInDir = Math.ceil(parallelSeq / 2);
+        var _c = getQuadraticStartEndPoint(nodeSize, 5 * seqInDir * dir, -length / 2, 0, length / 2, 0), sx = _c.sx, sy = _c.sy, ex = _c.ex, ey = _c.ey;
+        var curveHeight = length * 0.1 * seqInDir * dir;
+        // only do clear when node position changed
+        edgeCurve.clear();
+        edgeCurve.lineStyle({ width: 1, color: color, alpha: alpha });
+        edgeCurve.moveTo(sx, sy);
+        edgeCurve.quadraticCurveTo(0, curveHeight, ex, ey);
+        // edgeGfx -> edgeCurveArrow
+        // only do clear when node position changed
+        edgeCurveArrow.clear();
+        var coord = getQuadraticBezierXY(1, sx, sy, 0, curveHeight, ex, ey);
+        var angle = getQuadraticAngle(1, sx, sy, 0, curveHeight, ex, ey);
+        edgeCurveArrow.x = coord.x;
+        edgeCurveArrow.y = coord.y;
+        edgeCurveArrow.rotation = angle;
+        edgeCurveArrow.beginFill(color, alpha, true);
+        edgeCurveArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+        edgeCurveArrow.lineTo(0, 0);
+        edgeCurveArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+        edgeCurveArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+        edgeCurveArrow.closePath();
+        edgeCurveArrow.endFill();
     }
 }
-function updateEdgeVisibility(edgeGfx, zoomStep) {
-    // edgeGfx -> edgeLine
-    var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
-    edgeLine.visible = zoomStep >= 1;
-    // edgeGFX -> edgeArrow
-    var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
-    edgeArrow.visible = zoomStep >= 3;
+function updateEdgeStyle(edgeGfx, edgeStyle, _textureCache, _isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
+    var _a;
+    if (isSelfLoop) {
+        return;
+    }
+    if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+        // edgeGfx -> edgeLine
+        var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
+        edgeLine.height = edgeStyle.width;
+        _a = colorToPixi(edgeStyle.color), edgeLine.tint = _a[0], edgeLine.alpha = _a[1];
+    }
+    // if (isDirected) {
+    //   // edgeGfx -> edgeArrow
+    //   const edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER);
+    //   const edgeArrowTexture = textureCache.get(edgeArrowTextureKey, () => {
+    //     const graphics = new Graphics();
+    //     graphics.beginFill(WHITE, 1.0, true);
+    //     graphics.moveTo(-ARROW_SIZE, -ARROW_SIZE);
+    //     graphics.lineTo(ARROW_SIZE, 0);
+    //     graphics.lineTo(-ARROW_SIZE, ARROW_SIZE);
+    //     graphics.lineTo(-ARROW_SIZE, -ARROW_SIZE);
+    //     graphics.closePath();
+    //     graphics.endFill();
+    //     return graphics;
+    //   });
+    //   const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
+    //   edgeArrow.texture = edgeArrowTexture;
+    //   [edgeArrow.tint, edgeArrow.alpha] = colorToPixi(edgeStyle.color);
+    // }
 }
+function updateEdgeVisibility(edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq) {
+    var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
+    var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
+    var edgeCurve = edgeGfx.getChildByName(EDGE_CURVE);
+    var edgeCurveArrow = edgeGfx.getChildByName(EDGE_CURVE_ARROW);
+    if (isSelfLoop) {
+        // edgeGfx -> edgeCurve
+        edgeCurve.visible = zoomStep >= 2;
+        // edgeGfx -> edgeCurveArrow
+        edgeCurveArrow.visible = zoomStep >= 3;
+        // hide line
+        edgeLine.visible = false;
+        edgeArrow.visible = false;
+        return;
+    }
+    if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+        // edgeGfx -> edgeLine
+        edgeLine.visible = zoomStep >= 2;
+        // edgeGFX -> edgeArrow
+        edgeArrow.visible = zoomStep >= 3;
+        // hide curve
+        edgeCurve.visible = false;
+        edgeCurveArrow.visible = false;
+    }
+    else {
+        // edgeGfx -> edgeCurve
+        edgeCurve.visible = zoomStep >= 2;
+        // edgeGfx -> edgeCurveArrow
+        edgeCurveArrow.visible = zoomStep >= 3;
+        // hide line
+        edgeLine.visible = false;
+        edgeArrow.visible = false;
+    }
+}
+// 2 self loop
+//    https://blogs.sitepointstatic.com/examples/tech/canvas-curves/bezier-curve.html
+//    先简单选点
+//      start/end point
+//      ctrl point
+//    cubic bezier
+// 3 self loop + arrow
+// 4 multi loop
+// 5 lod => curve to line when no detail needed
+// 6 hit testing (hover and click)
+// https://codepen.io/IndependentSw/pen/mLZzGj
+//  https://math.stackexchange.com/questions/885292/how-to-take-derivative-of-bezier-function
+//  https://fr.khanacademy.org/computer-programming/beziertangenta-b-c-d-t/4736929853603840
+// https://javascript.info/bezier-curve
+// https://pomax.github.io/bezierinfo/
+// https://pomax.github.io/bezierjs/
+//   https://pomax.github.io/bezierinfo/#circleintersection
 
 var PixiEdge = /** @class */ (function (_super) {
     __extends(PixiEdge, _super);
@@ -419,21 +603,21 @@ var PixiEdge = /** @class */ (function (_super) {
         createEdge(edgeGfx);
         return edgeGfx;
     };
-    PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition, nodeStyle) {
+    PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
         var position = {
             x: (sourceNodePosition.x + targetNodePosition.x) / 2,
             y: (sourceNodePosition.y + targetNodePosition.y) / 2,
         };
-        var rotation = -Math.atan2(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
+        var rotation = Math.atan2(targetNodePosition.y - sourceNodePosition.y, targetNodePosition.x - sourceNodePosition.x);
         this.edgeGfx.position.copyFrom(position);
         this.edgeGfx.rotation = rotation;
-        updatePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle);
+        updatePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq);
     };
-    PixiEdge.prototype.updateStyle = function (edgeStyle, textureCache, isDirected) {
-        updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected);
+    PixiEdge.prototype.updateStyle = function (edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
+        updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq);
     };
-    PixiEdge.prototype.updateVisibility = function (zoomStep) {
-        updateEdgeVisibility(this.edgeGfx, zoomStep);
+    PixiEdge.prototype.updateVisibility = function (zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq) {
+        updateEdgeVisibility(this.edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq);
     };
     return PixiEdge;
 }(TypedEmitter));
@@ -474,6 +658,7 @@ var PixiGraph = /** @class */ (function (_super) {
         _this.nodeKeyToNodeObject = new Map();
         _this.edgeKeyToEdgeObject = new Map();
         _this.selectNodeKeys = new Set();
+        _this.parallelEdgeMap = new Map();
         _this.mousedownNodeKey = null;
         _this.mousedownEdgeKey = null;
         _this.mouseDownPosition = null;
@@ -526,7 +711,7 @@ var PixiGraph = /** @class */ (function (_super) {
             .pinch()
             .wheel()
             .decelerate()
-            .clampZoom({ maxScale: 2.5 });
+            .clampZoom({ maxScale: 5 });
         _this.app.stage.addChild(_this.viewport);
         _this.viewport.on('mousedown', function (event) {
             if (event.target === _this.viewport) {
@@ -587,6 +772,8 @@ var PixiGraph = /** @class */ (function (_super) {
                 }
             });
             _this.resizeObserver.observe(_this.container);
+            // need to calculate parallel edge before register event listener
+            _this.calculateParallelEdge();
             // listen to graph changes
             _this.graph.on('nodeAdded', _this.onGraphNodeAddedBound);
             _this.graph.on('edgeAdded', _this.onGraphEdgeAddedBound);
@@ -654,12 +841,25 @@ var PixiGraph = /** @class */ (function (_super) {
         this.viewport.center = graphCenter;
         this.viewport.fit(true);
     };
+    PixiGraph.prototype.calculateParallelEdge = function () {
+        var _this = this;
+        var parallelEdgeMap = new Map();
+        this.graph.forEachEdge(function (edgeKey, _edgeAttributes, sourceNodeKey, targetNodeKey) {
+            var key = sourceNodeKey + "_" + targetNodeKey;
+            var count = (parallelEdgeMap.get(key) || 0) + 1;
+            parallelEdgeMap.set(key, count);
+            _this.graph.setEdgeAttribute(edgeKey, 'parallelSeq', count);
+        });
+        this.parallelEdgeMap = parallelEdgeMap;
+    };
     PixiGraph.prototype.onGraphNodeAdded = function (data) {
+        this.calculateParallelEdge();
         var nodeKey = data.key;
         var nodeAttributes = data.attributes;
         this.createNode(nodeKey, nodeAttributes);
     };
     PixiGraph.prototype.onGraphEdgeAdded = function (data) {
+        this.calculateParallelEdge();
         var edgeKey = data.key;
         var edgeAttributes = data.attributes;
         var sourceNodeKey = data.source;
@@ -669,10 +869,12 @@ var PixiGraph = /** @class */ (function (_super) {
         this.createEdge(edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes);
     };
     PixiGraph.prototype.onGraphNodeDropped = function (data) {
+        this.calculateParallelEdge();
         var nodeKey = data.key;
         this.dropNode(nodeKey);
     };
     PixiGraph.prototype.onGraphEdgeDropped = function (data) {
+        this.calculateParallelEdge();
         var edgeKey = data.key;
         this.dropEdge(edgeKey);
     };
@@ -1013,6 +1215,9 @@ var PixiGraph = /** @class */ (function (_super) {
         this.updateEdgeStyle(edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes);
     };
     PixiGraph.prototype.updateEdgeStyle = function (edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, _sourceNodeAttributes, targetNodeAttributes) {
+        var key = sourceNodeKey + "_" + targetNodeKey;
+        var parallelEdgeCount = this.parallelEdgeMap.get(key) || 1;
+        var parallelSeq = this.graph.getEdgeAttribute(edgeKey, 'parallelSeq');
         var isDirected = this.graph.isDirected(edgeKey);
         var edge = this.edgeKeyToEdgeObject.get(edgeKey);
         var sourceNode = this.nodeKeyToNodeObject.get(sourceNodeKey);
@@ -1021,10 +1226,10 @@ var PixiGraph = /** @class */ (function (_super) {
         var targetNodePosition = { x: targetNode.nodeGfx.position.x, y: targetNode.nodeGfx.position.y };
         var nodeStyleDefinitions = [DEFAULT_STYLE.node, this.style.node];
         var nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, targetNodeAttributes);
-        edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle);
         var edgeStyleDefinitions = [DEFAULT_STYLE.edge, this.style.edge, edge.hovered ? this.hoverStyle.edge : undefined];
         var edgeStyle = resolveStyleDefinitions(edgeStyleDefinitions, edgeAttributes);
-        edge.updateStyle(edgeStyle, this.textureCache, isDirected);
+        edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, isDirected, sourceNodeKey === targetNodeKey, parallelEdgeCount, parallelSeq);
+        edge.updateStyle(edgeStyle, this.textureCache, isDirected, sourceNodeKey === targetNodeKey, parallelEdgeCount, parallelSeq);
     };
     PixiGraph.prototype.updateGraphVisibility = function () {
         // culling todo(rotation cull have bug)
@@ -1048,9 +1253,12 @@ var PixiGraph = /** @class */ (function (_super) {
             var node = _this.nodeKeyToNodeObject.get(nodeKey);
             node.updateVisibility(zoomStep);
         });
-        this.graph.forEachEdge(function (edgeKey) {
+        this.graph.forEachEdge(function (edgeKey, _edgeAttributes, sourceNodeKey, targetNodeKey) {
+            var key = sourceNodeKey + "_" + targetNodeKey;
+            var parallelEdgeCount = _this.parallelEdgeMap.get(key) || 0;
+            var parallelSeq = _this.graph.getEdgeAttribute(edgeKey, 'parallelSeq');
             var edge = _this.edgeKeyToEdgeObject.get(edgeKey);
-            edge.updateVisibility(zoomStep);
+            edge.updateVisibility(zoomStep, sourceNodeKey === targetNodeKey, parallelEdgeCount, parallelSeq);
         });
     };
     return PixiGraph;

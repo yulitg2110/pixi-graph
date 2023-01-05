@@ -103,6 +103,7 @@ declare class PixiGraph<NodeAttributes extends BaseNodeAttributes = BaseNodeAttr
     private nodeKeyToNodeObject;
     private edgeKeyToEdgeObject;
     private selectNodeKeys;
+    private parallelEdgeMap;
     private mousedownNodeKey;
     private mousedownEdgeKey;
     private mouseDownPosition;
@@ -124,6 +125,7 @@ declare class PixiGraph<NodeAttributes extends BaseNodeAttributes = BaseNodeAttr
     zoomIn(): void;
     zoomOut(): void;
     resetView(): void;
+    private calculateParallelEdge;
     private onGraphNodeAdded;
     private onGraphEdgeAdded;
     private onGraphNodeDropped;
