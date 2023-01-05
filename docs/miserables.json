@@ -82,6 +82,8 @@
     { "source": "Napoleon", "target": "Myriel", "value": 1 },
     { "source": "Napoleon", "target": "Myriel", "value": 2 },
     { "source": "Napoleon", "target": "Myriel", "value": 3 },
+    { "source": "Napoleon", "target": "Myriel", "value": 4 },
+    { "source": "Napoleon", "target": "Myriel", "value": 5 },
     { "source": "Mlle.Baptistine", "target": "Myriel", "value": 8 },
     { "source": "Mme.Magloire", "target": "Myriel", "value": 10 },
     { "source": "Mme.Magloire", "target": "Mlle.Baptistine", "value": 6 },

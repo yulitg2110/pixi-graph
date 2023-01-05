@@ -81,7 +81,7 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected);
   }
 
-  updateVisibility(zoomStep: number) {
-    updateEdgeVisibility(this.edgeGfx, zoomStep);
+  updateVisibility(zoomStep: number, parallelEdgeCount: number, parallelSeq: number) {
+    updateEdgeVisibility(this.edgeGfx, zoomStep, parallelEdgeCount, parallelSeq);
   }
 }

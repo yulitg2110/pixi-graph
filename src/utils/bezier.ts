@@ -75,9 +75,9 @@ export function getQuadraticStartEndPoint(
   const radian = (degree / 180) * Math.PI;
 
   return {
-    sx: sx + nodeSize * Math.sin(radian),
-    sy: sy + nodeSize * Math.cos(radian),
-    ex: ex + nodeSize * Math.sin(radian) * -1,
-    ey: ey + nodeSize * Math.cos(radian),
+    sx: sx + nodeSize * Math.cos(radian),
+    sy: sy + nodeSize * Math.sin(radian),
+    ex: ex + nodeSize * Math.cos(radian) * -1,
+    ey: ey + nodeSize * Math.sin(radian),
   };
 }

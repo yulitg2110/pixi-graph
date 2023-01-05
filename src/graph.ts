@@ -250,6 +250,9 @@ export class PixiGraph<
 
       this.resizeObserver.observe(this.container);
 
+      // need to calculate parallel edge before register event listener
+      this.calculateParallelEdge();
+
       // listen to graph changes
       this.graph.on('nodeAdded', this.onGraphNodeAddedBound);
       this.graph.on('edgeAdded', this.onGraphEdgeAddedBound);
@@ -327,6 +330,7 @@ export class PixiGraph<
 
   private calculateParallelEdge() {
     let parallelEdgeMap = new Map<string, number>();
+    console.log('calculateParallelEdge');
     this.graph.forEachEdge(
       (edgeKey: string, _edgeAttributes: EdgeAttributes, sourceNodeKey: string, targetNodeKey: string) => {
         const key = `${sourceNodeKey}_${targetNodeKey}`;
@@ -582,7 +586,6 @@ export class PixiGraph<
   }
 
   private createGraph() {
-    this.calculateParallelEdge();
     this.graph.forEachNode(this.createNode.bind(this));
     this.graph.forEachEdge(this.createEdge.bind(this));
 
@@ -795,8 +798,10 @@ export class PixiGraph<
     targetNodeAttributes: NodeAttributes
   ) {
     const key = `${sourceNodeKey}_${targetNodeKey}`;
-    const parallelEdgeCount = this.parallelEdgeMap.get(key) || 0;
+    const parallelEdgeCount = this.parallelEdgeMap.get(key) || 1;
     const parallelSeq = this.graph.getEdgeAttribute(edgeKey, 'parallelSeq') as number;
+
+    console.log(key, parallelEdgeCount, parallelSeq);
 
     const isDirected = this.graph.isDirected(edgeKey);
 
@@ -852,9 +857,15 @@ export class PixiGraph<
       node.updateVisibility(zoomStep);
     });
 
-    this.graph.forEachEdge((edgeKey) => {
-      const edge = this.edgeKeyToEdgeObject.get(edgeKey)!;
-      edge.updateVisibility(zoomStep);
-    });
+    this.graph.forEachEdge(
+      (edgeKey: string, _edgeAttributes: EdgeAttributes, sourceNodeKey: string, targetNodeKey: string) => {
+        const key = `${sourceNodeKey}_${targetNodeKey}`;
+        const parallelEdgeCount = this.parallelEdgeMap.get(key) || 0;
+        const parallelSeq = this.graph.getEdgeAttribute(edgeKey, 'parallelSeq') as number;
+
+        const edge = this.edgeKeyToEdgeObject.get(edgeKey)!;
+        edge.updateVisibility(zoomStep, parallelEdgeCount, parallelSeq);
+      }
+    );
   }
 }

@@ -50,60 +50,73 @@ export function updatePosition(
   targetNodePosition: IPointData,
   nodeStyle: NodeStyle,
   edgeStyle: EdgeStyle,
-  _isDirected: boolean,
-  _parallelSeq: number,
-  _parallelEdgeCount: number
+  isDirected: boolean,
+  parallelSeq: number,
+  parallelEdgeCount: number
 ) {
   const nodeSize = nodeStyle.size;
-
-  // edgeGfx -> edgeLine
-  const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
-  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
-  edgeLine.width = length;
-
   const [color, alpha] = colorToPixi(edgeStyle.color);
 
+  const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
+
   // edgeGfx -> edgeArrow
-  const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Graphics;
-  edgeArrow.x = length / 2 - nodeSize;
-  edgeArrow.beginFill(color, alpha, true);
-  edgeArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
-  edgeArrow.lineTo(0, 0);
-  edgeArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
-  edgeArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
-  edgeArrow.closePath();
-  edgeArrow.endFill();
+  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === 1)) {
+    // edgeGfx -> edgeLine
+    const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
+    edgeLine.width = length;
 
-  // edgeGfx -> edgeCurve
-  const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
+    if (isDirected) {
+      const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Graphics;
+      edgeArrow.x = length / 2 - nodeSize;
+      edgeArrow.beginFill(color, alpha, true);
+      edgeArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+      edgeArrow.lineTo(0, 0);
+      edgeArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+      edgeArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+      edgeArrow.closePath();
+      edgeArrow.endFill();
+    }
+  } else {
+    // edgeGfx -> edgeCurve
+    const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
 
-  const { sx, sy, ex, ey } = getQuadraticStartEndPoint(nodeSize, 30, -length / 2, 0, length / 2, 0);
-  const curveHeight = length * 0.4 + sy;
+    const dir = parallelSeq % 2 === 0 ? 1 : -1;
 
-  // only do clear when node position changed
-  edgeCurve.clear();
-  edgeCurve.lineStyle({ width: 1, color, alpha });
-  edgeCurve.moveTo(sx, sy);
-  edgeCurve.quadraticCurveTo(0, curveHeight, ex, ey);
+    const { sx, sy, ex, ey } = getQuadraticStartEndPoint(
+      nodeSize,
+      5 * (parallelSeq / 2) * dir,
+      -length / 2,
+      0,
+      length / 2,
+      0
+    );
+    const curveHeight = length * 0.1 * (parallelSeq / 2) * dir + sy;
 
-  // edgeGfx -> edgeCurveArrow
-  const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
-  // only do clear when node position changed
-  edgeCurveArrow.clear();
-  const coord = getQuadraticBezierXY(1, sx, sy, 0, curveHeight, ex, ey);
-  const angle = getQuadraticAngle(1, sx, sy, 0, curveHeight, ex, ey);
+    // only do clear when node position changed
+    edgeCurve.clear();
+    edgeCurve.lineStyle({ width: 1, color, alpha });
+    edgeCurve.moveTo(sx, sy);
+    edgeCurve.quadraticCurveTo(0, curveHeight, ex, ey);
 
-  edgeCurveArrow.x = coord.x;
-  edgeCurveArrow.y = coord.y;
-  edgeCurveArrow.rotation = angle;
+    // edgeGfx -> edgeCurveArrow
+    const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
+    // only do clear when node position changed
+    edgeCurveArrow.clear();
+    const coord = getQuadraticBezierXY(1, sx, sy, 0, curveHeight, ex, ey);
+    const angle = getQuadraticAngle(1, sx, sy, 0, curveHeight, ex, ey);
 
-  edgeCurveArrow.beginFill(color, alpha, true);
-  edgeCurveArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
-  edgeCurveArrow.lineTo(0, 0);
-  edgeCurveArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
-  edgeCurveArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
-  edgeCurveArrow.closePath();
-  edgeCurveArrow.endFill();
+    edgeCurveArrow.x = coord.x;
+    edgeCurveArrow.y = coord.y;
+    edgeCurveArrow.rotation = angle;
+
+    edgeCurveArrow.beginFill(color, alpha, true);
+    edgeCurveArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+    edgeCurveArrow.lineTo(0, 0);
+    edgeCurveArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+    edgeCurveArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+    edgeCurveArrow.closePath();
+    edgeCurveArrow.endFill();
+  }
 }
 
 export function updateEdgeStyle(
@@ -140,33 +153,39 @@ export function updateEdgeStyle(
   // }
 }
 
-export function updateEdgeVisibility(edgeGfx: Container, zoomStep: number) {
-  // edgeGfx -> edgeLine
-  const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
-  edgeLine.visible = zoomStep >= 1;
-  // edgeLine.visible = false;
+// todo(lin)
+// also needs to pass parallel information to here
+export function updateEdgeVisibility(
+  edgeGfx: Container,
+  zoomStep: number,
+  parallelEdgeCount: number,
+  parallelSeq: number
+) {
+  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === 1)) {
+    // edgeGfx -> edgeLine
+    const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
+    edgeLine.visible = zoomStep >= 1;
 
-  // edgeGFX -> edgeArrow
-  const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
-  edgeArrow.visible = zoomStep >= 3;
-  // edgeArrow.visible = false;
+    // edgeGFX -> edgeArrow
+    const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
+    edgeArrow.visible = zoomStep >= 3;
+  } else {
+    // edgeGfx -> edgeCurve
+    const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
+    edgeCurve.visible = zoomStep >= 1;
 
-  // edgeGfx -> edgeCurve
-  const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
-  edgeCurve.visible = false;
-
-  // edgeGfx -> edgeCurveArrow
-  const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
-  edgeCurveArrow.visible = false;
+    // edgeGfx -> edgeCurveArrow
+    const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
+    edgeCurveArrow.visible = zoomStep >= 3;
+  }
 }
 
 // 1 multi curve between nodes
-//  render pipeline to calculate parallel page
 //  curve start/end points and heights (based)
-
 // 2 self loop
 //    https://blogs.sitepointstatic.com/examples/tech/canvas-curves/bezier-curve.html
-// 5 self loop + arrow
+// 3 self loop + arrow
+
 // 6 multi loop
 // 7 hit testing (hover and click)
 // 8 lod => curve to line when no detail needed
