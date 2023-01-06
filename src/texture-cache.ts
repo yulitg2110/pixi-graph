@@ -24,7 +24,14 @@ export class TextureCache {
         Math.ceil(region.width),
         Math.ceil(region.height)
       );
-      texture = this.renderer.generateTexture(container, SCALE_MODES.LINEAR, this.renderer.resolution, roundedRegion);
+      texture = this.renderer.generateTexture(
+        container,
+        SCALE_MODES.LINEAR,
+        // we want to support better texture antialias
+        // so we generate high resolution texture here
+        this.renderer.resolution * 4,
+        roundedRegion
+      );
       this.textures.set(key, texture);
     }
     return texture;

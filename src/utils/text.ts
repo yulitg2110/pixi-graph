@@ -16,6 +16,7 @@ export interface TextStyle {
   fontSize: number;
 }
 
+// for antialias: BITMAP_TEXT is much better than TEXT
 export function textToPixi(type: TextType, content: string, style: TextStyle) {
   let text;
   if (type === TextType.TEXT) {
