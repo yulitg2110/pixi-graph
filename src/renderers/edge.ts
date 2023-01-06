@@ -18,9 +18,9 @@ import {
 } from '../utils/bezier';
 import { TextureCache } from '../texture-cache';
 
-GRAPHICS_CURVES.minSegments = 8 * 4;
-// const DELIMETER = '::';
-// const WHITE = 0xffffff;
+GRAPHICS_CURVES.minSegments = 8 * 8;
+const DELIMETER = '::';
+const WHITE = 0xffffff;
 
 const EDGE_LINE = 'EDGE_LINE';
 const EDGE_ARROW = 'EDGE_ARROW';
@@ -38,8 +38,9 @@ export function createEdge(edgeGfx: Container) {
   edgeGfx.addChild(edgeLine);
 
   // edgeGfx -> edgeArrow
-  const edgeArrow = new Graphics();
+  const edgeArrow = new Sprite();
   edgeArrow.name = EDGE_ARROW;
+  edgeArrow.anchor.set(0, 0.5);
   edgeGfx.addChild(edgeArrow);
 
   // edgeGfx -> edgeCurve
@@ -59,6 +60,7 @@ export function updatePosition(
   targetNodePosition: IPointData,
   nodeStyle: NodeStyle,
   edgeStyle: EdgeStyle,
+  textureCache: TextureCache,
   isDirected: boolean,
   isSelfLoop: boolean,
   parallelEdgeCount: number,
@@ -69,7 +71,7 @@ export function updatePosition(
   const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
 
   const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
-  const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Graphics;
+  const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
   const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
   const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
 
@@ -120,15 +122,26 @@ export function updatePosition(
     edgeLine.width = length;
 
     if (isDirected) {
-      edgeArrow.clear();
-      edgeArrow.x = length / 2 - nodeSize;
-      edgeArrow.beginFill(color, alpha, true);
-      edgeArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
-      edgeArrow.lineTo(0, 0);
-      edgeArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
-      edgeArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
-      edgeArrow.closePath();
-      edgeArrow.endFill();
+      // edgeGfx -> edgeArrow
+      const edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER);
+      const edgeArrowTexture = textureCache.get(edgeArrowTextureKey, () => {
+        const graphics = new Graphics();
+        graphics.beginFill(WHITE, 1.0, true);
+        graphics.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+        graphics.lineTo(0, 0);
+        graphics.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+        graphics.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+        graphics.closePath();
+        graphics.endFill();
+
+        return graphics;
+      });
+
+      // todo(lin): seems add 0.5 will make the arrow better fit with node circle
+      //    may need change to this.renderer.resolution / 0.2
+      edgeArrow.x = length / 2 - nodeSize - ARROW_SIZE * 2 + 0.5;
+      edgeArrow.texture = edgeArrowTexture;
+      [edgeArrow.tint, edgeArrow.alpha] = colorToPixi(edgeStyle.color);
     }
   } else {
     edgeCurve.visible = true;
@@ -185,27 +198,6 @@ export function updateEdgeStyle(
     edgeLine.height = edgeStyle.width;
     [edgeLine.tint, edgeLine.alpha] = colorToPixi(edgeStyle.color);
   }
-  // if (isDirected) {
-  //   // edgeGfx -> edgeArrow
-  //   const edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER);
-  //   const edgeArrowTexture = textureCache.get(edgeArrowTextureKey, () => {
-  //     const graphics = new Graphics();
-  //     graphics.beginFill(WHITE, 1.0, true);
-
-  //     graphics.moveTo(-ARROW_SIZE, -ARROW_SIZE);
-  //     graphics.lineTo(ARROW_SIZE, 0);
-  //     graphics.lineTo(-ARROW_SIZE, ARROW_SIZE);
-  //     graphics.lineTo(-ARROW_SIZE, -ARROW_SIZE);
-  //     graphics.closePath();
-  //     graphics.endFill();
-
-  //     return graphics;
-  //   });
-
-  //   const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
-  //   edgeArrow.texture = edgeArrowTexture;
-  //   [edgeArrow.tint, edgeArrow.alpha] = colorToPixi(edgeStyle.color);
-  // }
 }
 
 export function updateEdgeVisibility(
