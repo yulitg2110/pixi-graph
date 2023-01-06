@@ -10,6 +10,12 @@
 
 2. hit testing for curve edge
 
+3. improve level of detail
+
+   - fallback curve to line and remove self loop when zoom level is too small.
+
+   - cull node first and then for visible nodes/edges and zoom level great than 1, we may switch to render with graphic instead of texture.
+
 ## layouts
 
 1. move layout to web worker?
