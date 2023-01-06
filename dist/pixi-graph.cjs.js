@@ -374,17 +374,32 @@ function getQuadraticStartEndPoint(nodeSize, degree, sx, sy, ex, ey) {
         ey: ey + nodeSize * Math.sin(radian),
     };
 }
-function getLoopEdgeBezierPoint(nodeSize, x, y) {
-    var len = 75;
+function getLoopEdgeBezierPoint(nodeSize, parallelSeq, x, y) {
+    var len = 75 * parallelSeq;
+    // x goes from left to right
+    // y goes from up to down
+    // so we choose start at 180 and end at 270
+    var degreeStart = 270 + (parallelSeq - 1) * 5;
+    var radianStart = (degreeStart / 180) * Math.PI;
+    var degreeEnd = 180 - (parallelSeq - 1) * 5;
+    var radianEnd = (degreeEnd / 180) * Math.PI;
+    var sx = x + nodeSize * Math.cos(radianStart);
+    var sy = y + nodeSize * Math.sin(radianStart);
+    var ex = x + nodeSize * Math.cos(radianEnd);
+    var ey = y + nodeSize * Math.sin(radianEnd);
+    var cp1x = x + (nodeSize + len) * Math.cos(radianStart);
+    var cp1y = y + (nodeSize + len) * Math.sin(radianStart);
+    var cp2x = x + (nodeSize + len) * Math.cos(radianEnd);
+    var cp2y = y + (nodeSize + len) * Math.sin(radianEnd);
     return {
-        sx: x,
-        sy: y - nodeSize,
-        cp1x: x,
-        cp1y: y - nodeSize - len,
-        cp2x: x - nodeSize - len,
-        cp2y: y,
-        ex: x - nodeSize,
-        ey: y,
+        sx: sx,
+        sy: sy,
+        cp1x: cp1x,
+        cp1y: cp1y,
+        cp2x: cp2x,
+        cp2y: cp2y,
+        ex: ex,
+        ey: ey,
     };
 }
 
@@ -430,8 +445,7 @@ function updatePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeSty
     if (isSelfLoop) {
         edgeCurve.visible = true;
         edgeCurveArrow.visible = true;
-        console.log('getLoopEdgeBezierPoint', sourceNodePosition);
-        var _b = getLoopEdgeBezierPoint(nodeSize, 0, 0), sx = _b.sx, sy = _b.sy, cp1x = _b.cp1x, cp1y = _b.cp1y, cp2x = _b.cp2x, cp2y = _b.cp2y, ex = _b.ex, ey = _b.ey;
+        var _b = getLoopEdgeBezierPoint(nodeSize, parallelSeq, 0, 0), sx = _b.sx, sy = _b.sy, cp1x = _b.cp1x, cp1y = _b.cp1y, cp2x = _b.cp2x, cp2y = _b.cp2y, ex = _b.ex, ey = _b.ey;
         // only do clear when node position changed
         edgeCurve.clear();
         edgeCurve.lineStyle({ width: 1, color: color, alpha: alpha });
@@ -479,7 +493,7 @@ function updatePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeSty
         var dir = parallelSeq % 2 === 0 ? 1 : -1;
         var seqInDir = Math.ceil(parallelSeq / 2);
         var _c = getQuadraticStartEndPoint(nodeSize, 5 * seqInDir * dir, -length / 2, 0, length / 2, 0), sx = _c.sx, sy = _c.sy, ex = _c.ex, ey = _c.ey;
-        var curveHeight = length * 0.1 * seqInDir * dir;
+        var curveHeight = length * 0.25 * seqInDir * dir;
         // only do clear when node position changed
         edgeCurve.clear();
         edgeCurve.lineStyle({ width: 1, color: color, alpha: alpha });
@@ -566,19 +580,12 @@ function updateEdgeVisibility(edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, 
         edgeArrow.visible = false;
     }
 }
-// 2 self loop
-//    https://blogs.sitepointstatic.com/examples/tech/canvas-curves/bezier-curve.html
-//    先简单选点
-//      start/end point
-//      ctrl point
-//    cubic bezier
-// 3 self loop + arrow
-// 4 multi loop
-// 5 lod => curve to line when no detail needed
-// 6 hit testing (hover and click)
-// https://codepen.io/IndependentSw/pen/mLZzGj
-//  https://math.stackexchange.com/questions/885292/how-to-take-derivative-of-bezier-function
-//  https://fr.khanacademy.org/computer-programming/beziertangenta-b-c-d-t/4736929853603840
+// 1 lod for curve
+// 2 hit testing (hover and click)
+// 3 edge label
+//    line
+//    parallel
+//    self loop
 // https://javascript.info/bezier-curve
 // https://pomax.github.io/bezierinfo/
 // https://pomax.github.io/bezierjs/
