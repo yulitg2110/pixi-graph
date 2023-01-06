@@ -179,7 +179,7 @@ export class PixiGraph<
       .pinch()
       .wheel()
       .decelerate()
-      .clampZoom({ maxScale: 5 });
+      .clampZoom({ maxScale: 2.5 });
     this.app.stage.addChild(this.viewport);
     this.viewport.on('mousedown', (event: InteractionEvent) => {
       if (event.target === this.viewport) {
@@ -856,6 +856,17 @@ export class PixiGraph<
     const zoom = this.viewport.scale.x;
     const zoomSteps = [0.1, 0.2, 0.4, Infinity];
     const zoomStep = zoomSteps.findIndex((zoomStep) => zoom <= zoomStep);
+
+    // zoomStep = 0, zoom <= 0.1
+    //    node background
+    // zoomStep = 1,    0.1 < zoom <= 0.2
+    //    node border
+    // zoomStep = 2, 0.2 < zoom <= 0.4
+    //    node icon
+    //    edge (line/parallel edge/self loop edge)
+    // zoomStep = 3,  0.4 < zoom
+    //    node label
+    //    edge arrow
 
     this.graph.forEachNode((nodeKey) => {
       const node = this.nodeKeyToNodeObject.get(nodeKey)!;

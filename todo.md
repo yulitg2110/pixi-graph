@@ -16,6 +16,11 @@
 
    - cull node first and then for visible nodes/edges and zoom level great than 1, we may switch to render with graphic instead of texture.
 
+4. antialias for texture when zoom in
+
+   - use texture mipmap
+   - generate high resolution texture
+
 ## layouts
 
 1. move layout to web worker?
