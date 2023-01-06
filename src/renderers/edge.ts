@@ -252,15 +252,3 @@ export function updateEdgeVisibility(
     edgeArrow.visible = false;
   }
 }
-
-// 1 lod for curve
-// 2 hit testing (hover and click)
-// 3 edge label
-//    line
-//    parallel
-//    self loop
-
-// https://javascript.info/bezier-curve
-// https://pomax.github.io/bezierinfo/
-// https://pomax.github.io/bezierjs/
-//   https://pomax.github.io/bezierinfo/#circleintersection
