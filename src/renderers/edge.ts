@@ -54,7 +54,7 @@ export function createEdge(edgeGfx: Container) {
   edgeGfx.addChild(edgeCurveArrow);
 }
 
-export function updatePosition(
+export function updateEdgePosition(
   edgeGfx: Container,
   sourceNodePosition: IPointData,
   targetNodePosition: IPointData,

@@ -2,10 +2,10 @@ import { Container } from '@pixi/display';
 import { InteractionEvent } from '@pixi/interaction';
 import { IPointData } from '@pixi/math';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { createEdge, updateEdgeStyle, updateEdgeVisibility, updatePosition } from './renderers/edge';
+import { createEdge, updateEdgeStyle, updateEdgeVisibility, updateEdgePosition } from './renderers/edge';
 import { EdgeStyle, NodeStyle } from './utils/style';
 import { TextureCache } from './texture-cache';
-import { createEdgeLabel, updateEdgeLabelStyle, updateEdgeLabelVisibility } from './renderers/edge-label';
+import { createEdgeLabel, updateEdgeLabelVisibility, updateLabelPosition } from './renderers/edge-label';
 
 interface PixiEdgeEvents {
   mousemove: (event: MouseEvent) => void;
@@ -87,8 +87,21 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     this.edgeLabelGfx.position.copyFrom(position);
     this.edgeLabelGfx.rotation = rotation;
 
-    updatePosition(
+    updateEdgePosition(
       this.edgeGfx,
+      sourceNodePosition,
+      targetNodePosition,
+      nodeStyle,
+      edgeStyle,
+      textureCache,
+      isDirected,
+      isSelfLoop,
+      parallelEdgeCount,
+      parallelSeq
+    );
+
+    updateLabelPosition(
+      this.edgeLabelGfx,
       sourceNodePosition,
       targetNodePosition,
       nodeStyle,
@@ -110,7 +123,6 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     parallelSeq: number
   ) {
     updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq);
-    updateEdgeLabelStyle(this.edgeLabelGfx, edgeStyle, textureCache);
   }
 
   updateVisibility(zoomStep: number, isSelfLoop: boolean, parallelEdgeCount: number, parallelSeq: number) {

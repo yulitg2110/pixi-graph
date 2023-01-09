@@ -3,9 +3,11 @@ import { Sprite } from '@pixi/sprite';
 import { BitmapText } from '@pixi/text-bitmap';
 import '@pixi/mixin-get-child-by-name';
 import { colorToPixi } from '../utils/color';
-import { EdgeStyle } from '../utils/style';
+import { EdgeStyle, NodeStyle } from '../utils/style';
 import { textToPixi } from '../utils/text';
 import { TextureCache } from '../texture-cache';
+import { IPointData } from '@pixi/math';
+import { getQuadraticBezierXY, getQuadraticStartEndPoint } from '../utils/bezier';
 
 const DELIMETER = '::';
 
@@ -19,8 +21,24 @@ export function createEdgeLabel(edgeLabelGfx: Container) {
   edgeLabelGfx.addChild(edgeLabelText);
 }
 
-export function updateEdgeLabelStyle(edgeLabelGfx: Container, edgeStyle: EdgeStyle, textureCache: TextureCache) {
-  const dir = edgeLabelGfx.rotation >= -Math.PI / 2 && edgeLabelGfx.rotation <= Math.PI / 2 ? 1 : -1;
+// !!! the label placement should keep consistent with edge line placement
+export function updateLabelPosition(
+  edgeLabelGfx: Container,
+  sourceNodePosition: IPointData,
+  targetNodePosition: IPointData,
+  nodeStyle: NodeStyle,
+  edgeStyle: EdgeStyle,
+  textureCache: TextureCache,
+  _isDirected: boolean,
+  isSelfLoop: boolean,
+  parallelEdgeCount: number,
+  parallelSeq: number
+) {
+  const nodeSize = nodeStyle.size;
+  const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
+  const labelDir = edgeLabelGfx.rotation >= -Math.PI / 2 && edgeLabelGfx.rotation <= Math.PI / 2 ? 1 : -1;
+
+  const edgeLabelText = edgeLabelGfx.getChildByName!(EDGE_LABEL_TEXT) as Sprite;
 
   const edgeLabelTextTextureKey = [
     EDGE_LABEL_TEXT,
@@ -37,13 +55,29 @@ export function updateEdgeLabelStyle(edgeLabelGfx: Container, edgeStyle: EdgeSty
     return text;
   });
 
-  // edgeLabelGfx -> edgeLabelText
-  const edgeLabelText = edgeLabelGfx.getChildByName!(EDGE_LABEL_TEXT) as Sprite;
   edgeLabelText.texture = edgeLabelTextTexture;
-  // if dir is -1, we rotation the text, so good for user to read the edge label
-  edgeLabelText.rotation = dir > 0 ? 0 : Math.PI;
+  // if dir is -1, we rotation the text, it make label easier to read.
+  edgeLabelText.rotation = labelDir > 0 ? 0 : Math.PI;
 
-  edgeLabelText.y = (-(edgeLabelTextTexture.height + edgeStyle.label.padding * 2) / 2) * dir;
+  // see bezier.ts: y goes from up to down
+  let y = 0;
+
+  if (isSelfLoop) {
+    // todo
+  } else if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+    y = (-(edgeLabelTextTexture.height + edgeStyle.label.padding * 2) / 2) * labelDir;
+  } else {
+    const dir = parallelSeq % 2 === 0 ? 1 : -1;
+    const seqInDir = Math.ceil(parallelSeq / 2);
+
+    const curveHeight = length * 0.25 * seqInDir * dir;
+    const { sx, sy, ex, ey } = getQuadraticStartEndPoint(nodeSize, 5 * seqInDir * dir, -length / 2, 0, length / 2, 0);
+
+    const center = getQuadraticBezierXY(0.5, sx, sy, 0, curveHeight, ex, ey);
+    y = center.y + (-(edgeLabelTextTexture.height + edgeStyle.label.padding * 2) / 2) * labelDir;
+  }
+
+  edgeLabelText.y = y;
   [edgeLabelText.tint, edgeLabelText.alpha] = colorToPixi(edgeStyle.label.color);
 }
 
