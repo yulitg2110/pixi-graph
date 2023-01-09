@@ -104,7 +104,9 @@ export class PixiGraph<
   // private cull: Simple;
   private resizeObserver: ResizeObserver;
   private edgeLayer: Container;
+  private edgeLabelLayer: Container;
   private frontEdgeLayer: Container;
+  private frontEdgeLabelLayer: Container;
   private nodeLayer: Container;
   private nodeLabelLayer: Container;
   private frontNodeLayer: Container;
@@ -218,13 +220,17 @@ export class PixiGraph<
 
     // create layers
     this.edgeLayer = new Container();
+    this.edgeLabelLayer = new Container();
     this.frontEdgeLayer = new Container();
+    this.frontEdgeLabelLayer = new Container();
     this.nodeLayer = new Container();
     this.nodeLabelLayer = new Container();
     this.frontNodeLayer = new Container();
     this.frontNodeLabelLayer = new Container();
     this.viewport.addChild(this.edgeLayer);
+    this.viewport.addChild(this.edgeLabelLayer);
     this.viewport.addChild(this.frontEdgeLayer);
+    this.viewport.addChild(this.frontEdgeLabelLayer);
     this.viewport.addChild(this.nodeLayer);
     this.viewport.addChild(this.nodeLabelLayer);
     this.viewport.addChild(this.frontNodeLayer);
@@ -498,10 +504,16 @@ export class PixiGraph<
 
     // move to front
     const edgeIndex = this.edgeLayer.getChildIndex(edge.edgeGfx);
-    this.edgeLayer.removeChildAt(edgeIndex);
-    this.frontEdgeLayer.removeChildAt(edgeIndex);
-    this.edgeLayer.addChild(edge.edgePlaceholderGfx);
-    this.frontEdgeLayer.addChild(edge.edgeGfx);
+    if (edgeIndex >= 0) {
+      this.edgeLayer.removeChildAt(edgeIndex);
+      this.edgeLabelLayer.removeChildAt(edgeIndex);
+      this.frontEdgeLayer.removeChildAt(edgeIndex);
+      this.frontEdgeLabelLayer.removeChildAt(edgeIndex);
+      this.edgeLayer.addChild(edge.edgePlaceholderGfx);
+      this.edgeLabelLayer.addChild(edge.edgeLabelPlaceholderGfx);
+      this.frontEdgeLayer.addChild(edge.edgeGfx);
+      this.frontEdgeLabelLayer.addChild(edge.edgeLabelGfx);
+    }
   }
 
   private unhoverEdge(edgeKey: string) {
@@ -516,10 +528,16 @@ export class PixiGraph<
 
     // move back
     const edgeIndex = this.frontEdgeLayer.getChildIndex(edge.edgeGfx);
-    this.edgeLayer.removeChildAt(edgeIndex);
-    this.frontEdgeLayer.removeChildAt(edgeIndex);
-    this.edgeLayer.addChild(edge.edgeGfx);
-    this.frontEdgeLayer.addChild(edge.edgePlaceholderGfx);
+    if (edgeIndex >= 0) {
+      this.edgeLayer.removeChildAt(edgeIndex);
+      this.edgeLabelLayer.removeChildAt(edgeIndex);
+      this.frontEdgeLayer.removeChildAt(edgeIndex);
+      this.frontEdgeLabelLayer.removeChildAt(edgeIndex);
+      this.edgeLayer.addChild(edge.edgeGfx);
+      this.edgeLabelLayer.addChild(edge.edgeLabelGfx);
+      this.frontEdgeLayer.addChild(edge.edgePlaceholderGfx);
+      this.frontEdgeLabelLayer.addChild(edge.edgeLabelPlaceholderGfx);
+    }
   }
 
   private moveNode(nodeKey: string, point: IPointData) {
@@ -721,7 +739,9 @@ export class PixiGraph<
       }
     });
     this.edgeLayer.addChild(edge.edgeGfx);
+    this.edgeLabelLayer.addChild(edge.edgeLabelGfx);
     this.frontEdgeLayer.addChild(edge.edgePlaceholderGfx);
+    this.frontEdgeLabelLayer.addChild(edge.edgeLabelPlaceholderGfx);
     this.edgeKeyToEdgeObject.set(edgeKey, edge);
 
     this.updateEdgeStyle(
@@ -748,7 +768,9 @@ export class PixiGraph<
     const edge = this.edgeKeyToEdgeObject.get(edgeKey)!;
 
     this.edgeLayer.removeChild(edge.edgeGfx);
+    this.edgeLabelLayer.removeChild(edge.edgeLabelGfx);
     this.frontEdgeLayer.removeChild(edge.edgePlaceholderGfx);
+    this.frontEdgeLabelLayer.removeChild(edge.edgeLabelPlaceholderGfx);
     this.edgeKeyToEdgeObject.delete(edgeKey);
   }
 
@@ -857,7 +879,7 @@ export class PixiGraph<
     const zoom = this.viewport.scale.x;
     const zoomSteps = [0.1, 0.2, 0.4, Infinity];
     const zoomStep = zoomSteps.findIndex((zoomStep) => zoom <= zoomStep);
-    console.log(zoom, zoomStep);
+    // console.log(zoom, zoomStep);
 
     // zoomStep = 0, zoom <= 0.1
     //    node background

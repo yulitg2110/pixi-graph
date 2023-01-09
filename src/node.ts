@@ -60,9 +60,9 @@ export class PixiNode extends TypedEmitter<PixiNodeEvents> {
 
   private createNodeLabel() {
     const nodeLabelGfx = new Container();
-    nodeLabelGfx.interactive = true;
-    nodeLabelGfx.buttonMode = true;
     // disable event no nodeLabel
+    // nodeLabelGfx.interactive = false;
+    // nodeLabelGfx.buttonMode = false;
     // nodeLabelGfx.on('mousemove', (event: InteractionEvent) =>
     //   this.emit('mousemove', event.data.originalEvent as MouseEvent)
     // );

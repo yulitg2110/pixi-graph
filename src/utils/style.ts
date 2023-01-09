@@ -27,6 +27,14 @@ export interface GraphStyle {
   edge: {
     width: number;
     color: string;
+    label: {
+      content: string;
+      type: TextType;
+      fontFamily: string;
+      fontSize: number;
+      color: string;
+      padding: number;
+    };
   };
 }
 

@@ -5,6 +5,7 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 import { createEdge, updateEdgeStyle, updateEdgeVisibility, updatePosition } from './renderers/edge';
 import { EdgeStyle, NodeStyle } from './utils/style';
 import { TextureCache } from './texture-cache';
+import { createEdgeLabel, updateEdgeLabelStyle, updateEdgeLabelVisibility } from './renderers/edge-label';
 
 interface PixiEdgeEvents {
   mousemove: (event: MouseEvent) => void;
@@ -18,13 +19,22 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
   edgeGfx: Container;
   edgePlaceholderGfx: Container;
 
+  edgeLabelGfx: Container;
+  edgeLabelPlaceholderGfx: Container;
+
   hovered: boolean = false;
+  // todo(lin)
+  //  later we need to support select state for edge
+  selected: boolean = false;
 
   constructor() {
     super();
 
     this.edgeGfx = this.createEdge();
     this.edgePlaceholderGfx = new Container();
+
+    this.edgeLabelGfx = this.createEdgeLabel();
+    this.edgeLabelPlaceholderGfx = new Container();
   }
 
   createEdge() {
@@ -44,6 +54,12 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     edgeGfx.on('mouseup', (event: InteractionEvent) => this.emit('mouseup', event.data.originalEvent as MouseEvent));
     createEdge(edgeGfx);
     return edgeGfx;
+  }
+
+  createEdgeLabel() {
+    const edgeLabelGfx = new Container();
+    createEdgeLabel(edgeLabelGfx);
+    return edgeLabelGfx;
   }
 
   updatePosition(
@@ -67,6 +83,10 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     );
     this.edgeGfx.position.copyFrom(position);
     this.edgeGfx.rotation = rotation;
+
+    this.edgeLabelGfx.position.copyFrom(position);
+    this.edgeLabelGfx.rotation = rotation;
+
     updatePosition(
       this.edgeGfx,
       sourceNodePosition,
@@ -90,9 +110,11 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     parallelSeq: number
   ) {
     updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq);
+    updateEdgeLabelStyle(this.edgeLabelGfx, edgeStyle, textureCache);
   }
 
   updateVisibility(zoomStep: number, isSelfLoop: boolean, parallelEdgeCount: number, parallelSeq: number) {
     updateEdgeVisibility(this.edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq);
+    updateEdgeLabelVisibility(this.edgeLabelGfx, zoomStep);
   }
 }

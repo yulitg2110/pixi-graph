@@ -135,6 +135,14 @@
           edge: {
             width: 1,
             color: '#ff0000',
+            label: {
+              content: (edge) => `label`,
+              type: PixiGraph.TextType.BITMAP_TEXT,
+              fontFamily: 'HelveticaRegular',
+              fontSize: 12,
+              color: '#333333',
+              padding: 4,
+            },
           },
         };
         const hoverStyle = {
