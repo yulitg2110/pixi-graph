@@ -83,8 +83,6 @@ export function getQuadraticStartEndPoint(
 }
 
 export function getLoopEdgeBezierPoint(nodeSize: number, parallelSeq: number, x: number, y: number) {
-  const len = 75 * parallelSeq;
-
   // x goes from left to right
   // y goes from up to down
   // so we choose start at 270 and end at 180
@@ -98,6 +96,9 @@ export function getLoopEdgeBezierPoint(nodeSize: number, parallelSeq: number, x:
   const sy = y + nodeSize * Math.sin(radianStart);
   const ex = x + nodeSize * Math.cos(radianEnd);
   const ey = y + nodeSize * Math.sin(radianEnd);
+
+  // logic copied from cytoscape
+  const len = 50 * parallelSeq * (parallelSeq / 3 + 1);
 
   const cp1x = x + (nodeSize + len) * Math.cos(radianStart);
   const cp1y = y + (nodeSize + len) * Math.sin(radianStart);

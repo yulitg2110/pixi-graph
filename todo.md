@@ -1,25 +1,8 @@
 ## foundation
 
-1. edge label
+1. hit testing for curve edge
 
-   a. line
-
-   b. parallel edge
-
-   c. self loop
-
-2. hit testing for curve edge
-
-3. improve level of detail
-
-   - fallback curve to line and remove self loop when zoom level is too small.
-
-   - cull node first and then for visible nodes/edges and zoom level great than 1, we may switch to render with graphic instead of texture.
-
-4. antialias for texture when zoom in
-
-   - use texture mipmap
-   - generate high resolution texture
+2. support select/multi select state for edge
 
 ## layouts
 
@@ -37,9 +20,9 @@ may be need to update `updateNodeStyleByKey`, if we later use web worker to do l
 
 1.  should use graphic to generate the texture, so webgl only render texture(so we can render many nodes/edges), may be try to generate high resolution texture and scale down to specific width/height, so when zoom in, the texture is still looks good.
 
-2.  fix performance bottleneck on cull(run javascript profile will show the current cull implementation have performance issue). maybe we should use [pixi-cull](https://github.com/davidfig/pixi-cull), but `pixi-cuss` have [issue](https://github.com/davidfig/pixi-cull/issues/2) to calculate bounding box when use rotation
+2.  fix performance bottleneck on cull(run javascript profile will show the current cull implementation have performance issue). maybe we should use [pixi-cull](https://github.com/davidfig/pixi-cull), but `pixi-cull` have [issue](https://github.com/davidfig/pixi-cull/issues/2) to calculate bounding box when use rotation
 
-3.  we may need to do some benchmark on interaction(hover/click), and check if we need to use quad tree to improve interaction performance
+3.  we need to use quad tree to improve interaction performance(as profile show interaction findHit take over 60ms)
 
     a. https://jimkang.com/quadtreevis/
 

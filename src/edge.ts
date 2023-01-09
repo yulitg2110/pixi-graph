@@ -6,6 +6,7 @@ import { createEdge, updateEdgeStyle, updateEdgeVisibility, updateEdgePosition }
 import { EdgeStyle, NodeStyle } from './utils/style';
 import { TextureCache } from './texture-cache';
 import { createEdgeLabel, updateEdgeLabelVisibility, updateLabelPosition } from './renderers/edge-label';
+import { getCubicBezierXY, getLoopEdgeBezierPoint } from './utils/bezier';
 
 interface PixiEdgeEvents {
   mousemove: (event: MouseEvent) => void;
@@ -84,8 +85,45 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
     this.edgeGfx.position.copyFrom(position);
     this.edgeGfx.rotation = rotation;
 
-    this.edgeLabelGfx.position.copyFrom(position);
-    this.edgeLabelGfx.rotation = rotation;
+    let selfLoopHeight: number | undefined = undefined;
+
+    if (isSelfLoop) {
+      // we need to do calculate here to setup correct coordinates
+      const nodeSize = nodeStyle.size;
+      let { sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey } = getLoopEdgeBezierPoint(
+        nodeSize,
+        parallelSeq,
+        sourceNodePosition.x,
+        sourceNodePosition.y
+      );
+      // const length = Math.hypot(sx - ex, sy - ey);
+
+      const position = {
+        x: (sx + ex) / 2,
+        y: (sy + ey) / 2,
+      };
+      const rotation = Math.atan2(ey - sy, ex - sx);
+      this.edgeLabelGfx.position.copyFrom(position);
+      this.edgeLabelGfx.rotation = rotation;
+
+      sourceNodePosition = {
+        x: -length / 2,
+        y: 0,
+      };
+      targetNodePosition = {
+        x: length / 2,
+        y: 0,
+      };
+
+      const center = getCubicBezierXY(0.5, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey);
+
+      // we calculate self loop height here and pass to edge label
+      // note, we use position to calculate height
+      selfLoopHeight = Math.hypot(center.x - position.x, center.y - position.y);
+    } else {
+      this.edgeLabelGfx.position.copyFrom(position);
+      this.edgeLabelGfx.rotation = rotation;
+    }
 
     updateEdgePosition(
       this.edgeGfx,
@@ -110,7 +148,8 @@ export class PixiEdge extends TypedEmitter<PixiEdgeEvents> {
       isDirected,
       isSelfLoop,
       parallelEdgeCount,
-      parallelSeq
+      parallelSeq,
+      selfLoopHeight
     );
   }
 

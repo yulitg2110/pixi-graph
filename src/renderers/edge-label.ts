@@ -32,7 +32,8 @@ export function updateLabelPosition(
   _isDirected: boolean,
   isSelfLoop: boolean,
   parallelEdgeCount: number,
-  parallelSeq: number
+  parallelSeq: number,
+  selfLoopHeight?: number // only for self loop edge
 ) {
   const nodeSize = nodeStyle.size;
   const length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
@@ -63,7 +64,7 @@ export function updateLabelPosition(
   let y = 0;
 
   if (isSelfLoop) {
-    // todo
+    y = selfLoopHeight! + (-(edgeLabelTextTexture.height + edgeStyle.label.padding * 2) / 2) * labelDir;
   } else if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
     y = (-(edgeLabelTextTexture.height + edgeStyle.label.padding * 2) / 2) * labelDir;
   } else {
