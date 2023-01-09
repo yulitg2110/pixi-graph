@@ -28831,7 +28831,7 @@
         return BitmapFontLoader;
     }());
 
-    var WHITE$1 = 0xffffff;
+    var WHITE$2 = 0xffffff;
     exports.TextType = void 0;
     (function (TextType) {
         TextType["TEXT"] = "TEXT";
@@ -28839,6 +28839,7 @@
         // TODO: SDF_TEXT
         // see https://github.com/PixelsCommander/pixi-sdf-text/issues/12
     })(exports.TextType || (exports.TextType = {}));
+    // for antialias: BITMAP_TEXT is much better than TEXT
     function textToPixi(type, content, style) {
         var text;
         if (type === exports.TextType.TEXT) {
@@ -28846,7 +28847,7 @@
             text = new Text(content, {
                 fontFamily: style.fontFamily,
                 fontSize: style.fontSize,
-                fill: WHITE$1,
+                fill: WHITE$2,
             });
         }
         else if (type === exports.TextType.BITMAP_TEXT) {
@@ -37733,7 +37734,10 @@
                 var container = defaultCallback();
                 var region = container.getLocalBounds(undefined, true);
                 var roundedRegion = new Rectangle(Math.floor(region.x), Math.floor(region.y), Math.ceil(region.width), Math.ceil(region.height));
-                texture = this.renderer.generateTexture(container, SCALE_MODES$1.LINEAR, this.renderer.resolution, roundedRegion);
+                texture = this.renderer.generateTexture(container, SCALE_MODES$1.LINEAR, 
+                // we want to support better texture antialias
+                // so we generate high resolution texture here
+                this.renderer.resolution * 4, roundedRegion);
                 this.textures.set(key, texture);
             }
             return texture;
@@ -45425,8 +45429,8 @@ if (vType < 0.5) {
         return [pixiColor, alpha];
     }
 
-    var DELIMETER$1 = '::';
-    var WHITE = 0xffffff;
+    var DELIMETER$3 = '::';
+    var WHITE$1 = 0xffffff;
     var NODE_CIRCLE = 'NODE_CIRCLE';
     var NODE_CIRCLE_BORDER = 'NODE_CIRCLE_BORDER';
     var NODE_ICON = 'NODE_ICON';
@@ -45452,17 +45456,17 @@ if (vType < 0.5) {
     function updateNodeStyle(nodeGfx, nodeStyle, textureCache) {
         var _a, _b;
         var nodeOuterSize = nodeStyle.size + nodeStyle.border.width;
-        var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$1);
+        var nodeCircleTextureKey = [NODE_CIRCLE, nodeStyle.size].join(DELIMETER$3);
         var nodeCircleTexture = textureCache.get(nodeCircleTextureKey, function () {
             var graphics = new SmoothGraphics();
-            graphics.beginFill(WHITE, 1.0, true);
+            graphics.beginFill(WHITE$1, 1.0, true);
             graphics.drawCircle(nodeStyle.size, nodeStyle.size, nodeStyle.size);
             return graphics;
         });
-        var nodeCircleBorderTextureKey = [NODE_CIRCLE_BORDER, nodeStyle.size, nodeStyle.border.width].join(DELIMETER$1);
+        var nodeCircleBorderTextureKey = [NODE_CIRCLE_BORDER, nodeStyle.size, nodeStyle.border.width].join(DELIMETER$3);
         var nodeCircleBorderTexture = textureCache.get(nodeCircleBorderTextureKey, function () {
             var graphics = new SmoothGraphics();
-            graphics.lineStyle(nodeStyle.border.width, WHITE);
+            graphics.lineStyle(nodeStyle.border.width, WHITE$1);
             graphics.drawCircle(nodeOuterSize, nodeOuterSize, nodeStyle.size);
             return graphics;
         });
@@ -45496,7 +45500,7 @@ if (vType < 0.5) {
         }
     }
 
-    var DELIMETER = '::';
+    var DELIMETER$2 = '::';
     var NODE_LABEL_TEXT = 'NODE_LABEL_TEXT';
     function createNodeLabel(nodeLabelGfx) {
         // nodeLabelGfx -> nodeLabelText
@@ -45512,7 +45516,7 @@ if (vType < 0.5) {
             nodeStyle.label.fontFamily,
             nodeStyle.label.fontSize,
             nodeStyle.label.content,
-        ].join(DELIMETER);
+        ].join(DELIMETER$2);
         var nodeLabelTextTexture = textureCache.get(nodeLabelTextTextureKey, function () {
             var text = textToPixi(nodeStyle.label.type, nodeStyle.label.content, {
                 fontFamily: nodeStyle.label.fontFamily,
@@ -45569,9 +45573,9 @@ if (vType < 0.5) {
         };
         PixiNode.prototype.createNodeLabel = function () {
             var nodeLabelGfx = new Container();
-            nodeLabelGfx.interactive = true;
-            nodeLabelGfx.buttonMode = true;
             // disable event no nodeLabel
+            // nodeLabelGfx.interactive = false;
+            // nodeLabelGfx.buttonMode = false;
             // nodeLabelGfx.on('mousemove', (event: InteractionEvent) =>
             //   this.emit('mousemove', event.data.originalEvent as MouseEvent)
             // );
@@ -45640,10 +45644,9 @@ if (vType < 0.5) {
         };
     }
     function getLoopEdgeBezierPoint(nodeSize, parallelSeq, x, y) {
-        var len = 75 * parallelSeq;
         // x goes from left to right
         // y goes from up to down
-        // so we choose start at 180 and end at 270
+        // so we choose start at 270 and end at 180
         var degreeStart = 270 + (parallelSeq - 1) * 5;
         var radianStart = (degreeStart / 180) * Math.PI;
         var degreeEnd = 180 - (parallelSeq - 1) * 5;
@@ -45652,6 +45655,8 @@ if (vType < 0.5) {
         var sy = y + nodeSize * Math.sin(radianStart);
         var ex = x + nodeSize * Math.cos(radianEnd);
         var ey = y + nodeSize * Math.sin(radianEnd);
+        // logic copied from cytoscape
+        var len = 50 * parallelSeq * (parallelSeq / 3 + 1);
         var cp1x = x + (nodeSize + len) * Math.cos(radianStart);
         var cp1y = y + (nodeSize + len) * Math.sin(radianStart);
         var cp2x = x + (nodeSize + len) * Math.cos(radianEnd);
@@ -45668,9 +45673,9 @@ if (vType < 0.5) {
         };
     }
 
-    GRAPHICS_CURVES.minSegments = 8 * 4;
-    // const DELIMETER = '::';
-    // const WHITE = 0xffffff;
+    GRAPHICS_CURVES.minSegments = 8 * 8;
+    var DELIMETER$1 = '::';
+    var WHITE = 0xffffff;
     var EDGE_LINE = 'EDGE_LINE';
     var EDGE_ARROW = 'EDGE_ARROW';
     var EDGE_CURVE = 'EDGE_CURVE';
@@ -45683,8 +45688,9 @@ if (vType < 0.5) {
         edgeLine.anchor.set(0.5);
         edgeGfx.addChild(edgeLine);
         // edgeGfx -> edgeArrow
-        var edgeArrow = new SmoothGraphics();
+        var edgeArrow = new Sprite();
         edgeArrow.name = EDGE_ARROW;
+        edgeArrow.anchor.set(0, 0.5);
         edgeGfx.addChild(edgeArrow);
         // edgeGfx -> edgeCurve
         var edgeCurve = new SmoothGraphics();
@@ -45695,9 +45701,10 @@ if (vType < 0.5) {
         edgeCurveArrow.name = EDGE_CURVE_ARROW;
         edgeGfx.addChild(edgeCurveArrow);
     }
-    function updatePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
+    function updateEdgePosition(edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
+        var _a;
         var nodeSize = nodeStyle.size;
-        var _a = colorToPixi(edgeStyle.color), color = _a[0], alpha = _a[1];
+        var _b = colorToPixi(edgeStyle.color), color = _b[0], alpha = _b[1];
         var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
         var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
         var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
@@ -45710,7 +45717,7 @@ if (vType < 0.5) {
         if (isSelfLoop) {
             edgeCurve.visible = true;
             edgeCurveArrow.visible = true;
-            var _b = getLoopEdgeBezierPoint(nodeSize, parallelSeq, 0, 0), sx = _b.sx, sy = _b.sy, cp1x = _b.cp1x, cp1y = _b.cp1y, cp2x = _b.cp2x, cp2y = _b.cp2y, ex = _b.ex, ey = _b.ey;
+            var _c = getLoopEdgeBezierPoint(nodeSize, parallelSeq, 0, 0), sx = _c.sx, sy = _c.sy, cp1x = _c.cp1x, cp1y = _c.cp1y, cp2x = _c.cp2x, cp2y = _c.cp2y, ex = _c.ex, ey = _c.ey;
             // only do clear when node position changed
             edgeCurve.clear();
             edgeCurve.lineStyle({ width: 1, color: color, alpha: alpha });
@@ -45740,15 +45747,24 @@ if (vType < 0.5) {
             // edgeGfx -> edgeLine
             edgeLine.width = length;
             if (isDirected) {
-                edgeArrow.clear();
-                edgeArrow.x = length / 2 - nodeSize;
-                edgeArrow.beginFill(color, alpha, true);
-                edgeArrow.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
-                edgeArrow.lineTo(0, 0);
-                edgeArrow.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
-                edgeArrow.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
-                edgeArrow.closePath();
-                edgeArrow.endFill();
+                // edgeGfx -> edgeArrow
+                var edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER$1);
+                var edgeArrowTexture = textureCache.get(edgeArrowTextureKey, function () {
+                    var graphics = new SmoothGraphics();
+                    graphics.beginFill(WHITE, 1.0, true);
+                    graphics.moveTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+                    graphics.lineTo(0, 0);
+                    graphics.lineTo(-ARROW_SIZE * 2, ARROW_SIZE);
+                    graphics.lineTo(-ARROW_SIZE * 2, -ARROW_SIZE);
+                    graphics.closePath();
+                    graphics.endFill();
+                    return graphics;
+                });
+                // todo(lin): seems add 0.5 will make the arrow better fit with node circle
+                //    may need change to this.renderer.resolution / 0.2
+                edgeArrow.x = length / 2 - nodeSize - ARROW_SIZE * 2 + 0.5;
+                edgeArrow.texture = edgeArrowTexture;
+                _a = colorToPixi(edgeStyle.color), edgeArrow.tint = _a[0], edgeArrow.alpha = _a[1];
             }
         }
         else {
@@ -45757,7 +45773,7 @@ if (vType < 0.5) {
             // edgeGfx -> edgeCurve
             var dir = parallelSeq % 2 === 0 ? 1 : -1;
             var seqInDir = Math.ceil(parallelSeq / 2);
-            var _c = getQuadraticStartEndPoint(nodeSize, 5 * seqInDir * dir, -length / 2, 0, length / 2, 0), sx = _c.sx, sy = _c.sy, ex = _c.ex, ey = _c.ey;
+            var _d = getQuadraticStartEndPoint(nodeSize, 5 * seqInDir * dir, -length / 2, 0, length / 2, 0), sx = _d.sx, sy = _d.sy, ex = _d.ex, ey = _d.ey;
             var curveHeight = length * 0.25 * seqInDir * dir;
             // only do clear when node position changed
             edgeCurve.clear();
@@ -45792,24 +45808,6 @@ if (vType < 0.5) {
             edgeLine.height = edgeStyle.width;
             _a = colorToPixi(edgeStyle.color), edgeLine.tint = _a[0], edgeLine.alpha = _a[1];
         }
-        // if (isDirected) {
-        //   // edgeGfx -> edgeArrow
-        //   const edgeArrowTextureKey = [EDGE_ARROW].join(DELIMETER);
-        //   const edgeArrowTexture = textureCache.get(edgeArrowTextureKey, () => {
-        //     const graphics = new Graphics();
-        //     graphics.beginFill(WHITE, 1.0, true);
-        //     graphics.moveTo(-ARROW_SIZE, -ARROW_SIZE);
-        //     graphics.lineTo(ARROW_SIZE, 0);
-        //     graphics.lineTo(-ARROW_SIZE, ARROW_SIZE);
-        //     graphics.lineTo(-ARROW_SIZE, -ARROW_SIZE);
-        //     graphics.closePath();
-        //     graphics.endFill();
-        //     return graphics;
-        //   });
-        //   const edgeArrow = edgeGfx.getChildByName!(EDGE_ARROW) as Sprite;
-        //   edgeArrow.texture = edgeArrowTexture;
-        //   [edgeArrow.tint, edgeArrow.alpha] = colorToPixi(edgeStyle.color);
-        // }
     }
     function updateEdgeVisibility(edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq) {
         var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
@@ -45845,24 +45843,77 @@ if (vType < 0.5) {
             edgeArrow.visible = false;
         }
     }
-    // 1 lod for curve
-    // 2 hit testing (hover and click)
-    // 3 edge label
-    //    line
-    //    parallel
-    //    self loop
-    // https://javascript.info/bezier-curve
-    // https://pomax.github.io/bezierinfo/
-    // https://pomax.github.io/bezierjs/
-    //   https://pomax.github.io/bezierinfo/#circleintersection
+
+    var DELIMETER = '::';
+    var EDGE_LABEL_TEXT = 'EDGE_LABEL_TEXT';
+    function createEdgeLabel(edgeLabelGfx) {
+        // edgeLabelGfx -> edgeLabelText
+        var edgeLabelText = new Sprite();
+        edgeLabelText.name = EDGE_LABEL_TEXT;
+        edgeLabelText.anchor.set(0.5);
+        edgeLabelGfx.addChild(edgeLabelText);
+    }
+    // !!! the label placement should keep consistent with edge line placement
+    function updateLabelPosition(edgeLabelGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, textureCache, _isDirected, isSelfLoop, parallelEdgeCount, parallelSeq, selfLoopHeight // only for self loop edge
+    ) {
+        var _a;
+        var nodeSize = nodeStyle.size;
+        var length = Math.hypot(targetNodePosition.x - sourceNodePosition.x, targetNodePosition.y - sourceNodePosition.y);
+        var labelDir = edgeLabelGfx.rotation >= -Math.PI / 2 && edgeLabelGfx.rotation <= Math.PI / 2 ? 1 : -1;
+        var edgeLabelText = edgeLabelGfx.getChildByName(EDGE_LABEL_TEXT);
+        var edgeLabelTextTextureKey = [
+            EDGE_LABEL_TEXT,
+            edgeStyle.label.fontFamily,
+            edgeStyle.label.fontSize,
+            edgeStyle.label.content,
+        ].join(DELIMETER);
+        var edgeLabelTextTexture = textureCache.get(edgeLabelTextTextureKey, function () {
+            var text = textToPixi(edgeStyle.label.type, edgeStyle.label.content, {
+                fontFamily: edgeStyle.label.fontFamily,
+                fontSize: edgeStyle.label.fontSize,
+            });
+            return text;
+        });
+        edgeLabelText.texture = edgeLabelTextTexture;
+        // if dir is -1, we rotation the text, it make label easier to read.
+        edgeLabelText.rotation = labelDir > 0 ? 0 : Math.PI;
+        // see bezier.ts: y goes from up to down
+        var y = 0;
+        if (isSelfLoop) {
+            y = selfLoopHeight + (-(edgeLabelTextTexture.height + edgeStyle.label.padding * 2) / 2) * labelDir;
+        }
+        else if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+            y = (-(edgeLabelTextTexture.height + edgeStyle.label.padding * 2) / 2) * labelDir;
+        }
+        else {
+            var dir = parallelSeq % 2 === 0 ? 1 : -1;
+            var seqInDir = Math.ceil(parallelSeq / 2);
+            var curveHeight = length * 0.25 * seqInDir * dir;
+            var _b = getQuadraticStartEndPoint(nodeSize, 5 * seqInDir * dir, -length / 2, 0, length / 2, 0), sx = _b.sx, sy = _b.sy, ex = _b.ex, ey = _b.ey;
+            var center = getQuadraticBezierXY(0.5, sx, sy, 0, curveHeight, ex, ey);
+            y = center.y + (-(edgeLabelTextTexture.height + edgeStyle.label.padding * 2) / 2) * labelDir;
+        }
+        edgeLabelText.y = y;
+        _a = colorToPixi(edgeStyle.label.color), edgeLabelText.tint = _a[0], edgeLabelText.alpha = _a[1];
+    }
+    function updateEdgeLabelVisibility(edgeLabelGfx, zoomStep) {
+        // edgeLabelGfx -> edgeLabelText
+        var edgeLabelText = edgeLabelGfx.getChildByName(EDGE_LABEL_TEXT);
+        edgeLabelText.visible = zoomStep >= 3;
+    }
 
     var PixiEdge = /** @class */ (function (_super) {
         __extends$2(PixiEdge, _super);
         function PixiEdge() {
             var _this = _super.call(this) || this;
             _this.hovered = false;
+            // todo(lin)
+            //  later we need to support select state for edge
+            _this.selected = false;
             _this.edgeGfx = _this.createEdge();
             _this.edgePlaceholderGfx = new Container();
+            _this.edgeLabelGfx = _this.createEdgeLabel();
+            _this.edgeLabelPlaceholderGfx = new Container();
             return _this;
         }
         PixiEdge.prototype.createEdge = function () {
@@ -45884,7 +45935,12 @@ if (vType < 0.5) {
             createEdge(edgeGfx);
             return edgeGfx;
         };
-        PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
+        PixiEdge.prototype.createEdgeLabel = function () {
+            var edgeLabelGfx = new Container();
+            createEdgeLabel(edgeLabelGfx);
+            return edgeLabelGfx;
+        };
+        PixiEdge.prototype.updatePosition = function (sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
             var position = {
                 x: (sourceNodePosition.x + targetNodePosition.x) / 2,
                 y: (sourceNodePosition.y + targetNodePosition.y) / 2,
@@ -45892,13 +45948,43 @@ if (vType < 0.5) {
             var rotation = Math.atan2(targetNodePosition.y - sourceNodePosition.y, targetNodePosition.x - sourceNodePosition.x);
             this.edgeGfx.position.copyFrom(position);
             this.edgeGfx.rotation = rotation;
-            updatePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq);
+            var selfLoopHeight = undefined;
+            if (isSelfLoop) {
+                // we need to do calculate here to setup correct coordinates
+                var nodeSize = nodeStyle.size;
+                var _a = getLoopEdgeBezierPoint(nodeSize, parallelSeq, sourceNodePosition.x, sourceNodePosition.y), sx = _a.sx, sy = _a.sy, cp1x = _a.cp1x, cp1y = _a.cp1y, cp2x = _a.cp2x, cp2y = _a.cp2y, ex = _a.ex, ey = _a.ey;
+                // const length = Math.hypot(sx - ex, sy - ey);
+                var position_1 = {
+                    x: (sx + ex) / 2,
+                    y: (sy + ey) / 2,
+                };
+                var rotation_1 = Math.atan2(ey - sy, ex - sx);
+                this.edgeLabelGfx.position.copyFrom(position_1);
+                this.edgeLabelGfx.rotation = rotation_1;
+                sourceNodePosition = {
+                    x: -length / 2,
+                    y: 0,
+                };
+                targetNodePosition = {
+                    x: length / 2,
+                    y: 0,
+                };
+                var center = getCubicBezierXY(0.5, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey);
+                selfLoopHeight = Math.hypot(center.x - position_1.x, center.y - position_1.y);
+            }
+            else {
+                this.edgeLabelGfx.position.copyFrom(position);
+                this.edgeLabelGfx.rotation = rotation;
+            }
+            updateEdgePosition(this.edgeGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq);
+            updateLabelPosition(this.edgeLabelGfx, sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq, selfLoopHeight);
         };
         PixiEdge.prototype.updateStyle = function (edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
             updateEdgeStyle(this.edgeGfx, edgeStyle, textureCache, isDirected, isSelfLoop, parallelEdgeCount, parallelSeq);
         };
         PixiEdge.prototype.updateVisibility = function (zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq) {
             updateEdgeVisibility(this.edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq);
+            updateEdgeLabelVisibility(this.edgeLabelGfx, zoomStep);
         };
         return PixiEdge;
     }(TypedEmitter));
@@ -46025,13 +46111,17 @@ if (vType < 0.5) {
             });
             // create layers
             _this.edgeLayer = new Container();
+            _this.edgeLabelLayer = new Container();
             _this.frontEdgeLayer = new Container();
+            _this.frontEdgeLabelLayer = new Container();
             _this.nodeLayer = new Container();
             _this.nodeLabelLayer = new Container();
             _this.frontNodeLayer = new Container();
             _this.frontNodeLabelLayer = new Container();
             _this.viewport.addChild(_this.edgeLayer);
+            _this.viewport.addChild(_this.edgeLabelLayer);
             _this.viewport.addChild(_this.frontEdgeLayer);
+            _this.viewport.addChild(_this.frontEdgeLabelLayer);
             _this.viewport.addChild(_this.nodeLayer);
             _this.viewport.addChild(_this.nodeLabelLayer);
             _this.viewport.addChild(_this.frontNodeLayer);
@@ -46265,10 +46355,16 @@ if (vType < 0.5) {
             this.updateEdgeStyleByKey(edgeKey);
             // move to front
             var edgeIndex = this.edgeLayer.getChildIndex(edge.edgeGfx);
-            this.edgeLayer.removeChildAt(edgeIndex);
-            this.frontEdgeLayer.removeChildAt(edgeIndex);
-            this.edgeLayer.addChild(edge.edgePlaceholderGfx);
-            this.frontEdgeLayer.addChild(edge.edgeGfx);
+            if (edgeIndex >= 0) {
+                this.edgeLayer.removeChildAt(edgeIndex);
+                this.edgeLabelLayer.removeChildAt(edgeIndex);
+                this.frontEdgeLayer.removeChildAt(edgeIndex);
+                this.frontEdgeLabelLayer.removeChildAt(edgeIndex);
+                this.edgeLayer.addChild(edge.edgePlaceholderGfx);
+                this.edgeLabelLayer.addChild(edge.edgeLabelPlaceholderGfx);
+                this.frontEdgeLayer.addChild(edge.edgeGfx);
+                this.frontEdgeLabelLayer.addChild(edge.edgeLabelGfx);
+            }
         };
         PixiGraph.prototype.unhoverEdge = function (edgeKey) {
             var edge = this.edgeKeyToEdgeObject.get(edgeKey);
@@ -46280,10 +46376,16 @@ if (vType < 0.5) {
             this.updateEdgeStyleByKey(edgeKey);
             // move back
             var edgeIndex = this.frontEdgeLayer.getChildIndex(edge.edgeGfx);
-            this.edgeLayer.removeChildAt(edgeIndex);
-            this.frontEdgeLayer.removeChildAt(edgeIndex);
-            this.edgeLayer.addChild(edge.edgeGfx);
-            this.frontEdgeLayer.addChild(edge.edgePlaceholderGfx);
+            if (edgeIndex >= 0) {
+                this.edgeLayer.removeChildAt(edgeIndex);
+                this.edgeLabelLayer.removeChildAt(edgeIndex);
+                this.frontEdgeLayer.removeChildAt(edgeIndex);
+                this.frontEdgeLabelLayer.removeChildAt(edgeIndex);
+                this.edgeLayer.addChild(edge.edgeGfx);
+                this.edgeLabelLayer.addChild(edge.edgeLabelGfx);
+                this.frontEdgeLayer.addChild(edge.edgePlaceholderGfx);
+                this.frontEdgeLabelLayer.addChild(edge.edgeLabelPlaceholderGfx);
+            }
         };
         PixiGraph.prototype.moveNode = function (nodeKey, point) {
             this.graph.setNodeAttribute(nodeKey, 'x', point.x);
@@ -46452,7 +46554,9 @@ if (vType < 0.5) {
                 }
             });
             this.edgeLayer.addChild(edge.edgeGfx);
+            this.edgeLabelLayer.addChild(edge.edgeLabelGfx);
             this.frontEdgeLayer.addChild(edge.edgePlaceholderGfx);
+            this.frontEdgeLabelLayer.addChild(edge.edgeLabelPlaceholderGfx);
             this.edgeKeyToEdgeObject.set(edgeKey, edge);
             this.updateEdgeStyle(edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes);
         };
@@ -46467,7 +46571,9 @@ if (vType < 0.5) {
         PixiGraph.prototype.dropEdge = function (edgeKey) {
             var edge = this.edgeKeyToEdgeObject.get(edgeKey);
             this.edgeLayer.removeChild(edge.edgeGfx);
+            this.edgeLabelLayer.removeChild(edge.edgeLabelGfx);
             this.frontEdgeLayer.removeChild(edge.edgePlaceholderGfx);
+            this.frontEdgeLabelLayer.removeChild(edge.edgeLabelPlaceholderGfx);
             this.edgeKeyToEdgeObject.delete(edgeKey);
         };
         PixiGraph.prototype.updateNodeStyleByKey = function (nodeKey) {
@@ -46509,7 +46615,7 @@ if (vType < 0.5) {
             var nodeStyle = resolveStyleDefinitions(nodeStyleDefinitions, targetNodeAttributes);
             var edgeStyleDefinitions = [DEFAULT_STYLE.edge, this.style.edge, edge.hovered ? this.hoverStyle.edge : undefined];
             var edgeStyle = resolveStyleDefinitions(edgeStyleDefinitions, edgeAttributes);
-            edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, isDirected, sourceNodeKey === targetNodeKey, parallelEdgeCount, parallelSeq);
+            edge.updatePosition(sourceNodePosition, targetNodePosition, nodeStyle, edgeStyle, this.textureCache, isDirected, sourceNodeKey === targetNodeKey, parallelEdgeCount, parallelSeq);
             edge.updateStyle(edgeStyle, this.textureCache, isDirected, sourceNodeKey === targetNodeKey, parallelEdgeCount, parallelSeq);
         };
         PixiGraph.prototype.updateGraphVisibility = function () {
@@ -46530,6 +46636,17 @@ if (vType < 0.5) {
             var zoom = this.viewport.scale.x;
             var zoomSteps = [0.1, 0.2, 0.4, Infinity];
             var zoomStep = zoomSteps.findIndex(function (zoomStep) { return zoom <= zoomStep; });
+            // console.log(zoom, zoomStep);
+            // zoomStep = 0, zoom <= 0.1
+            //    node background
+            // zoomStep = 1,    0.1 < zoom <= 0.2
+            //    node border
+            // zoomStep = 2, 0.2 < zoom <= 0.4
+            //    node icon
+            //    edge (line/parallel edge/self loop edge)
+            // zoomStep = 3,  0.4 < zoom < Infinity
+            //    node label
+            //    edge arrow
             this.graph.forEachNode(function (nodeKey) {
                 var node = _this.nodeKeyToNodeObject.get(nodeKey);
                 node.updateVisibility(zoomStep);

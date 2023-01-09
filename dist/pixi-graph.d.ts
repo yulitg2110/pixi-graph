@@ -44,6 +44,14 @@ interface GraphStyle {
     edge: {
         width: number;
         color: string;
+        label: {
+            content: string;
+            type: TextType;
+            fontFamily: string;
+            fontSize: number;
+            color: string;
+            padding: number;
+        };
     };
 }
 declare type NodeStyle = GraphStyle['node'];
@@ -95,7 +103,9 @@ declare class PixiGraph<NodeAttributes extends BaseNodeAttributes = BaseNodeAttr
     private viewport;
     private resizeObserver;
     private edgeLayer;
+    private edgeLabelLayer;
     private frontEdgeLayer;
+    private frontEdgeLabelLayer;
     private nodeLayer;
     private nodeLabelLayer;
     private frontNodeLayer;
