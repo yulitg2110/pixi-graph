@@ -1,6 +1,7 @@
 import { Container } from '@pixi/display';
 import { Sprite } from '@pixi/sprite';
 import { Texture } from '@pixi/core';
+import { Polygon } from '@pixi/math';
 import '@pixi/mixin-get-child-by-name';
 import { SmoothGraphics as Graphics } from '@pixi/graphics-smooth';
 import { IPointData } from '@pixi/math';
@@ -15,6 +16,7 @@ import {
   getQuadraticBezierXY,
   getQuadraticStartEndPoint,
   getLoopEdgeBezierPoint,
+  getPolygonPoints,
 } from '../utils/bezier';
 import { TextureCache } from '../texture-cache';
 
@@ -88,9 +90,12 @@ export function updateEdgePosition(
 
     // only do clear when node position changed
     edgeCurve.clear();
-    edgeCurve.lineStyle({ width: 1, color, alpha });
+    edgeCurve.lineStyle({ width: edgeStyle.width, color, alpha });
     edgeCurve.moveTo(sx, sy);
     edgeCurve.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey);
+
+    // set hit area
+    changeHitArea(edgeCurve, edgeStyle.width);
 
     // edgeGfx -> edgeCurveArrow
     // only do clear when node position changed
@@ -114,7 +119,7 @@ export function updateEdgePosition(
   }
 
   // edgeGfx -> edgeArrow
-  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+  if (isStraightLine(isSelfLoop, parallelEdgeCount, parallelSeq)) {
     edgeLine.visible = true;
     edgeArrow.visible = true;
 
@@ -160,6 +165,9 @@ export function updateEdgePosition(
     edgeCurve.moveTo(sx, sy);
     edgeCurve.quadraticCurveTo(0, curveHeight, ex, ey);
 
+    // set hit area
+    changeHitArea(edgeCurve, edgeStyle.width);
+
     // edgeGfx -> edgeCurveArrow
     // only do clear when node position changed
     edgeCurveArrow.clear();
@@ -189,14 +197,15 @@ export function updateEdgeStyle(
   parallelEdgeCount: number,
   parallelSeq: number
 ) {
-  if (isSelfLoop) {
-    return;
-  }
-  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+  if (isStraightLine(isSelfLoop, parallelEdgeCount, parallelSeq)) {
     // edgeGfx -> edgeLine
     const edgeLine = edgeGfx.getChildByName!(EDGE_LINE) as Sprite;
     edgeLine.height = edgeStyle.width;
     [edgeLine.tint, edgeLine.alpha] = colorToPixi(edgeStyle.color);
+  } else {
+    const [color, alpha] = colorToPixi(edgeStyle.color);
+    const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
+    edgeCurve.lineStyle({ width: edgeStyle.width, color, alpha });
   }
 }
 
@@ -212,19 +221,7 @@ export function updateEdgeVisibility(
   const edgeCurve = edgeGfx.getChildByName!(EDGE_CURVE) as Graphics;
   const edgeCurveArrow = edgeGfx.getChildByName!(EDGE_CURVE_ARROW) as Graphics;
 
-  if (isSelfLoop) {
-    // edgeGfx -> edgeCurve
-    edgeCurve.visible = zoomStep >= 2;
-    // edgeGfx -> edgeCurveArrow
-    edgeCurveArrow.visible = zoomStep >= 3;
-
-    // hide line
-    edgeLine.visible = false;
-    edgeArrow.visible = false;
-    return;
-  }
-
-  if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+  if (isStraightLine(isSelfLoop, parallelEdgeCount, parallelSeq)) {
     // edgeGfx -> edgeLine
     edgeLine.visible = zoomStep >= 2;
     // edgeGFX -> edgeArrow
@@ -243,4 +240,18 @@ export function updateEdgeVisibility(
     edgeLine.visible = false;
     edgeArrow.visible = false;
   }
+}
+
+function isStraightLine(isSelfLoop: boolean, parallelEdgeCount: number, parallelSeq: number) {
+  if (isSelfLoop) {
+    return false;
+  }
+  return parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount);
+}
+
+function changeHitArea(edgeCurve: Graphics, width: number) {
+  const edgePoints = edgeCurve.currentPath.points;
+  const ploygonPoints = getPolygonPoints(width, edgePoints);
+  const shape = new Polygon(ploygonPoints);
+  edgeCurve.hitArea = shape;
 }

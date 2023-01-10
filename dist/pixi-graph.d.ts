@@ -12,12 +12,12 @@ interface TextStyle {
     fontSize: number;
 }
 
-declare type BaseAttributes = Attributes;
-declare type BaseNodeAttributes = BaseAttributes & {
+type BaseAttributes = Attributes;
+type BaseNodeAttributes = BaseAttributes & {
     x: number;
     y: number;
 };
-declare type BaseEdgeAttributes = BaseAttributes;
+type BaseEdgeAttributes = BaseAttributes;
 
 interface GraphStyle {
     node: {
@@ -54,13 +54,13 @@ interface GraphStyle {
         };
     };
 }
-declare type NodeStyle = GraphStyle['node'];
-declare type EdgeStyle = GraphStyle['edge'];
-declare type StyleDefinition<Style, Attributes> = ((attributes: Attributes) => Style) | {
+type NodeStyle = GraphStyle['node'];
+type EdgeStyle = GraphStyle['edge'];
+type StyleDefinition<Style, Attributes> = ((attributes: Attributes) => Style) | {
     [Key in keyof Style]?: StyleDefinition<Style[Key], Attributes>;
 } | Style;
-declare type NodeStyleDefinition<NodeAttributes extends BaseNodeAttributes = BaseNodeAttributes> = StyleDefinition<NodeStyle, NodeAttributes>;
-declare type EdgeStyleDefinition<EdgeAttributes extends BaseEdgeAttributes = BaseEdgeAttributes> = StyleDefinition<EdgeStyle, EdgeAttributes>;
+type NodeStyleDefinition<NodeAttributes extends BaseNodeAttributes = BaseNodeAttributes> = StyleDefinition<NodeStyle, NodeAttributes>;
+type EdgeStyleDefinition<EdgeAttributes extends BaseEdgeAttributes = BaseEdgeAttributes> = StyleDefinition<EdgeStyle, EdgeAttributes>;
 interface GraphStyleDefinition<NodeAttributes extends BaseNodeAttributes = BaseNodeAttributes, EdgeAttributes extends BaseEdgeAttributes = BaseEdgeAttributes> {
     node?: NodeStyleDefinition<NodeAttributes>;
     edge?: EdgeStyleDefinition<EdgeAttributes>;
