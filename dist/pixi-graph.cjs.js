@@ -60,7 +60,7 @@ function textToPixi(type, content, style) {
     return text$1;
 }
 
-/*! *****************************************************************************
+/******************************************************************************
 Copyright (c) Microsoft Corporation.
 
 Permission to use, copy, modify, and/or distribute this software for any
@@ -111,7 +111,7 @@ function resolveStyleDefinitions(styleDefinitions, attributes) {
     var styles = styleDefinitions
         .filter(function (x) { return !!x; })
         .map(function (styleDefinition) { return resolveStyleDefinition(styleDefinition, attributes); });
-    var style = deepmerge__default['default'].all(styles);
+    var style = deepmerge__default["default"].all(styles);
     return style;
 }
 
@@ -155,9 +155,9 @@ var TextureCache = /** @class */ (function () {
 }());
 
 function colorToPixi(color) {
-    var rgbaColor = rgba__default['default'](color);
+    var rgbaColor = rgba__default["default"](color);
     if (!rgbaColor) {
-        throw new Error("Invalid color " + color);
+        throw new Error("Invalid color ".concat(color));
     }
     var pixiColor = utils.rgb2hex([rgbaColor[0] / 255, rgbaColor[1] / 255, rgbaColor[2] / 255]);
     var alpha = rgbaColor[3];
@@ -407,6 +407,35 @@ function getLoopEdgeBezierPoint(nodeSize, parallelSeq, x, y) {
         ey: ey,
     };
 }
+function getPolygonPoints(width, edgePoints) {
+    var numPoints = edgePoints.length / 2;
+    var output = new Array(edgePoints.length * 2);
+    for (var i = 0; i < numPoints; i++) {
+        var j = i * 2;
+        // Position of current point
+        var x = edgePoints[j];
+        var y = edgePoints[j + 1];
+        // Start
+        var x0 = edgePoints[j - 2] !== undefined ? edgePoints[j - 2] : x;
+        var y0 = edgePoints[j - 1] !== undefined ? edgePoints[j - 1] : y;
+        // End
+        var x1 = edgePoints[j + 2] !== undefined ? edgePoints[j + 2] : x;
+        var y1 = edgePoints[j + 3] !== undefined ? edgePoints[j + 3] : y;
+        // Get the angle of the line
+        var a = Math.atan2(-x1 + x0, y1 - y0);
+        var deltaX = width * Math.cos(a);
+        var deltaY = width * Math.sin(a);
+        // Add the x, y at the beginning
+        output[j] = x + deltaX;
+        output[j + 1] = y + deltaY;
+        // Add the reflected x, y at the end
+        output[output.length - 1 - j - 1] = x - deltaX;
+        output[output.length - 1 - j] = y - deltaY;
+    }
+    // close the shape
+    output.push(output[0], output[1]);
+    return output;
+}
 
 graphics.GRAPHICS_CURVES.minSegments = 8 * 8;
 var DELIMETER$1 = '::';
@@ -455,9 +484,11 @@ function updateEdgePosition(edgeGfx, sourceNodePosition, targetNodePosition, nod
         var _c = getLoopEdgeBezierPoint(nodeSize, parallelSeq, 0, 0), sx = _c.sx, sy = _c.sy, cp1x = _c.cp1x, cp1y = _c.cp1y, cp2x = _c.cp2x, cp2y = _c.cp2y, ex = _c.ex, ey = _c.ey;
         // only do clear when node position changed
         edgeCurve.clear();
-        edgeCurve.lineStyle({ width: 1, color: color, alpha: alpha });
+        edgeCurve.lineStyle({ width: edgeStyle.width, color: color, alpha: alpha });
         edgeCurve.moveTo(sx, sy);
         edgeCurve.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey);
+        // set hit area
+        changeHitArea(edgeCurve, edgeStyle.width);
         // edgeGfx -> edgeCurveArrow
         // only do clear when node position changed
         edgeCurveArrow.clear();
@@ -476,7 +507,7 @@ function updateEdgePosition(edgeGfx, sourceNodePosition, targetNodePosition, nod
         return;
     }
     // edgeGfx -> edgeArrow
-    if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+    if (isStraightLine(isSelfLoop, parallelEdgeCount, parallelSeq)) {
         edgeLine.visible = true;
         edgeArrow.visible = true;
         // edgeGfx -> edgeLine
@@ -515,6 +546,8 @@ function updateEdgePosition(edgeGfx, sourceNodePosition, targetNodePosition, nod
         edgeCurve.lineStyle({ width: 1, color: color, alpha: alpha });
         edgeCurve.moveTo(sx, sy);
         edgeCurve.quadraticCurveTo(0, curveHeight, ex, ey);
+        // set hit area
+        changeHitArea(edgeCurve, edgeStyle.width);
         // edgeGfx -> edgeCurveArrow
         // only do clear when node position changed
         edgeCurveArrow.clear();
@@ -534,14 +567,16 @@ function updateEdgePosition(edgeGfx, sourceNodePosition, targetNodePosition, nod
 }
 function updateEdgeStyle(edgeGfx, edgeStyle, _textureCache, _isDirected, isSelfLoop, parallelEdgeCount, parallelSeq) {
     var _a;
-    if (isSelfLoop) {
-        return;
-    }
-    if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+    if (isStraightLine(isSelfLoop, parallelEdgeCount, parallelSeq)) {
         // edgeGfx -> edgeLine
         var edgeLine = edgeGfx.getChildByName(EDGE_LINE);
         edgeLine.height = edgeStyle.width;
         _a = colorToPixi(edgeStyle.color), edgeLine.tint = _a[0], edgeLine.alpha = _a[1];
+    }
+    else {
+        var _b = colorToPixi(edgeStyle.color), color = _b[0], alpha = _b[1];
+        var edgeCurve = edgeGfx.getChildByName(EDGE_CURVE);
+        edgeCurve.lineStyle({ width: edgeStyle.width, color: color, alpha: alpha });
     }
 }
 function updateEdgeVisibility(edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, parallelSeq) {
@@ -549,17 +584,7 @@ function updateEdgeVisibility(edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, 
     var edgeArrow = edgeGfx.getChildByName(EDGE_ARROW);
     var edgeCurve = edgeGfx.getChildByName(EDGE_CURVE);
     var edgeCurveArrow = edgeGfx.getChildByName(EDGE_CURVE_ARROW);
-    if (isSelfLoop) {
-        // edgeGfx -> edgeCurve
-        edgeCurve.visible = zoomStep >= 2;
-        // edgeGfx -> edgeCurveArrow
-        edgeCurveArrow.visible = zoomStep >= 3;
-        // hide line
-        edgeLine.visible = false;
-        edgeArrow.visible = false;
-        return;
-    }
-    if (parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount)) {
+    if (isStraightLine(isSelfLoop, parallelEdgeCount, parallelSeq)) {
         // edgeGfx -> edgeLine
         edgeLine.visible = zoomStep >= 2;
         // edgeGFX -> edgeArrow
@@ -577,6 +602,18 @@ function updateEdgeVisibility(edgeGfx, zoomStep, isSelfLoop, parallelEdgeCount, 
         edgeLine.visible = false;
         edgeArrow.visible = false;
     }
+}
+function isStraightLine(isSelfLoop, parallelEdgeCount, parallelSeq) {
+    if (isSelfLoop) {
+        return false;
+    }
+    return parallelEdgeCount <= 1 || (parallelEdgeCount % 2 === 1 && parallelSeq === parallelEdgeCount);
+}
+function changeHitArea(edgeCurve, width) {
+    var edgePoints = edgeCurve.currentPath.points;
+    var ploygonPoints = getPolygonPoints(width, edgePoints);
+    var shape = new math.Polygon(ploygonPoints);
+    edgeCurve.hitArea = shape;
 }
 
 var DELIMETER = '::';
@@ -705,6 +742,8 @@ var PixiEdge = /** @class */ (function (_super) {
                 y: 0,
             };
             var center = getCubicBezierXY(0.5, sx, sy, cp1x, cp1y, cp2x, cp2y, ex, ey);
+            // we calculate self loop height here and pass to edge label
+            // note, we use position to calculate height
             selfLoopHeight = Math.hypot(center.x - position_1.x, center.y - position_1.y);
         }
         else {
@@ -951,7 +990,7 @@ var PixiGraph = /** @class */ (function (_super) {
         var _this = this;
         var parallelEdgeMap = new Map();
         this.graph.forEachEdge(function (edgeKey, _edgeAttributes, sourceNodeKey, targetNodeKey) {
-            var key = sourceNodeKey + "_" + targetNodeKey;
+            var key = "".concat(sourceNodeKey, "_").concat(targetNodeKey);
             var count = (parallelEdgeMap.get(key) || 0) + 1;
             parallelEdgeMap.set(key, count);
             _this.graph.setEdgeAttribute(edgeKey, 'parallelSeq', count);
@@ -1337,7 +1376,7 @@ var PixiGraph = /** @class */ (function (_super) {
         this.updateEdgeStyle(edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, sourceNodeAttributes, targetNodeAttributes);
     };
     PixiGraph.prototype.updateEdgeStyle = function (edgeKey, edgeAttributes, sourceNodeKey, targetNodeKey, _sourceNodeAttributes, targetNodeAttributes) {
-        var key = sourceNodeKey + "_" + targetNodeKey;
+        var key = "".concat(sourceNodeKey, "_").concat(targetNodeKey);
         var parallelEdgeCount = this.parallelEdgeMap.get(key) || 1;
         var parallelSeq = this.graph.getEdgeAttribute(edgeKey, 'parallelSeq');
         var isDirected = this.graph.isDirected(edgeKey);
@@ -1387,7 +1426,7 @@ var PixiGraph = /** @class */ (function (_super) {
             node.updateVisibility(zoomStep);
         });
         this.graph.forEachEdge(function (edgeKey, _edgeAttributes, sourceNodeKey, targetNodeKey) {
-            var key = sourceNodeKey + "_" + targetNodeKey;
+            var key = "".concat(sourceNodeKey, "_").concat(targetNodeKey);
             var parallelEdgeCount = _this.parallelEdgeMap.get(key) || 0;
             var parallelSeq = _this.graph.getEdgeAttribute(edgeKey, 'parallelSeq');
             var edge = _this.edgeKeyToEdgeObject.get(edgeKey);

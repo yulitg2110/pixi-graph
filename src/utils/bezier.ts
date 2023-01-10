@@ -116,3 +116,40 @@ export function getLoopEdgeBezierPoint(nodeSize: number, parallelSeq: number, x:
     ey,
   };
 }
+
+export function getPolygonPoints(width: number, edgePoints: number[]) {
+  const numPoints = edgePoints.length / 2;
+  const output = new Array(edgePoints.length * 2);
+  for (let i = 0; i < numPoints; i++) {
+    const j = i * 2;
+
+    // Position of current point
+    const x = edgePoints[j];
+    const y = edgePoints[j + 1];
+
+    // Start
+    const x0 = edgePoints[j - 2] !== undefined ? edgePoints[j - 2] : x;
+    const y0 = edgePoints[j - 1] !== undefined ? edgePoints[j - 1] : y;
+
+    // End
+    const x1 = edgePoints[j + 2] !== undefined ? edgePoints[j + 2] : x;
+    const y1 = edgePoints[j + 3] !== undefined ? edgePoints[j + 3] : y;
+
+    // Get the angle of the line
+    const a = Math.atan2(-x1 + x0, y1 - y0);
+    const deltaX = width * Math.cos(a);
+    const deltaY = width * Math.sin(a);
+
+    // Add the x, y at the beginning
+    output[j] = x + deltaX;
+    output[j + 1] = y + deltaY;
+
+    // Add the reflected x, y at the end
+    output[output.length - 1 - j - 1] = x - deltaX;
+    output[output.length - 1 - j] = y - deltaY;
+  }
+  // close the shape
+  output.push(output[0], output[1]);
+
+  return output;
+}
