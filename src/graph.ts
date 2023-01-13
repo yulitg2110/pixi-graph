@@ -12,13 +12,30 @@ import { Cull } from '@pixi-essentials/cull';
 // import { Simple } from 'pixi-cull';
 import { AbstractGraph } from 'graphology-types';
 import { TypedEmitter } from 'tiny-typed-emitter';
+import { LINE_SCALE_MODE, settings } from '@pixi/graphics-smooth';
+
+import { Base } from '@antv/layout/lib/layout/base';
+import {
+  GridLayout,
+  CircularLayout,
+  ConcentricLayout,
+  DagreLayout,
+  GForceLayout,
+  GForceGPULayout,
+  ForceAtlas2Layout,
+  ILayout,
+  OutModel,
+  OutNode,
+  Node,
+  Edge,
+} from '@antv/layout';
+
 import { GraphStyleDefinition, NodeStyleDefinition, resolveStyleDefinitions } from './utils/style';
 import { TextType } from './utils/text';
 import { BaseNodeAttributes, BaseEdgeAttributes } from './attributes';
 import { TextureCache } from './texture-cache';
 import { PixiNode } from './node';
 import { PixiEdge } from './edge';
-import { LINE_SCALE_MODE, settings } from '@pixi/graphics-smooth';
 
 Application.registerPlugin(TickerPlugin);
 Application.registerPlugin(AppLoaderPlugin);
@@ -58,6 +75,8 @@ export interface GraphOptions<
 > {
   container: HTMLElement;
   graph: AbstractGraph<NodeAttributes, EdgeAttributes>;
+  // detailed configuration see https://g6.antv.antgroup.com/api/graphlayout/guide
+  layout: ILayout.LayoutOptions;
   style: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
   hoverStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
   selectStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
@@ -93,6 +112,9 @@ export class PixiGraph<
 > extends TypedEmitter<PixiGraphEvents> {
   container: HTMLElement;
   graph: AbstractGraph<NodeAttributes, EdgeAttributes>;
+  layoutConfig: ILayout.LayoutOptions;
+  // @ts-ignore
+  layout: Base;
   style: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
   hoverStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
   selectStyle: GraphStyleDefinition<NodeAttributes, EdgeAttributes>;
@@ -140,10 +162,15 @@ export class PixiGraph<
 
     this.container = options.container;
     this.graph = options.graph;
+    this.layoutConfig = options.layout;
     this.style = options.style;
     this.hoverStyle = options.hoverStyle;
     this.selectStyle = options.selectStyle;
     this.resources = options.resources;
+
+    // do layout
+    this.createLayout();
+    this.doLayout(true);
 
     if (!(this.container instanceof HTMLElement)) {
       throw new Error('container should be a HTMLElement');
@@ -271,8 +298,9 @@ export class PixiGraph<
       this.graph.on('eachNodeAttributesUpdated', this.onGraphEachNodeAttributesUpdatedBound);
       this.graph.on('eachEdgeAttributesUpdated', this.onGraphEachEdgeAttributesUpdatedBound);
 
-      // initial draw
+      // init draw
       this.createGraph();
+
       this.resetView();
     });
   }
@@ -297,6 +325,89 @@ export class PixiGraph<
 
     this.app.destroy(true, { children: true, texture: true, baseTexture: true });
     this.app = undefined!;
+  }
+
+  private createLayout() {
+    switch (this.layoutConfig.type) {
+      case 'circular':
+        this.layout = new CircularLayout(this.layoutConfig);
+        break;
+
+      case 'concentric':
+        this.layout = new ConcentricLayout(this.layoutConfig);
+        break;
+
+      case 'grid':
+        this.layout = new GridLayout(this.layoutConfig);
+        break;
+
+      case 'dagre':
+        this.layout = new DagreLayout(this.layoutConfig);
+        break;
+
+      case 'forceAtlas2':
+        this.layout = new ForceAtlas2Layout(this.layoutConfig);
+        break;
+
+      case 'gForce':
+        this.layout = new GForceLayout(this.layoutConfig);
+        break;
+
+      case 'gForce-gpu':
+        this.layout = new GForceGPULayout(this.layoutConfig);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  public updateLayout(layoutConfig: ILayout.LayoutOptions) {
+    this.layoutConfig = layoutConfig;
+    if (this.layoutConfig.type !== layoutConfig.type) {
+      this.createLayout();
+    }
+    // do layout based on new config
+    this.doLayout();
+  }
+
+  // 1. convert from Graphology graph to layout graph
+  // 2. run layout
+  // 3. update Graphology graph based on layout result
+  public doLayout(_skipRender?: boolean) {
+    console.time(`${this.layoutConfig.type} layout`);
+    let nodes: Node[] = [];
+    let edges: Edge[] = [];
+    this.graph.forEachNode((nodeKey) =>
+      nodes.push({
+        id: nodeKey,
+      })
+    );
+    this.graph.forEachEdge((_edgeKey, _edgeAttributes, sourceNodeKey, targetNodeKey) => {
+      edges.push({
+        source: sourceNodeKey,
+        target: targetNodeKey,
+      });
+    });
+
+    const layoutResult = this.layout.layout({
+      nodes,
+      edges,
+    });
+
+    let positionedNodes: OutNode[] = [];
+    // some Layout(mainly force layout) will not return results
+    if (layoutResult && layoutResult.nodes) {
+      positionedNodes = (layoutResult as OutModel).nodes!;
+    } else {
+      positionedNodes = this.layout.nodes as OutNode[];
+    }
+
+    for (let node of positionedNodes) {
+      this.graph.setNodeAttribute(node.id, 'x', node.x);
+      this.graph.setNodeAttribute(node.id, 'y', node.y);
+    }
+    console.timeEnd(`${this.layoutConfig.type} layout`);
   }
 
   private get zoomStep() {
@@ -879,7 +990,7 @@ export class PixiGraph<
     const zoom = this.viewport.scale.x;
     const zoomSteps = [0.1, 0.2, 0.4, Infinity];
     const zoomStep = zoomSteps.findIndex((zoomStep) => zoom <= zoomStep);
-    // console.log(zoom, zoomStep);
+    console.log(zoom, zoomStep);
 
     // zoomStep = 0, zoom <= 0.1
     //    node background

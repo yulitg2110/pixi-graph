@@ -92,17 +92,17 @@
           graph.setNodeAttribute(node, 'x', Math.random());
           graph.setNodeAttribute(node, 'y', Math.random());
         });
-        console.time('layout');
-        forceAtlas2.assign(graph, {
-          iterations: 300,
-          settings: {
-            ...forceAtlas2.inferSettings(graph),
-            scalingRatio: 500,
-            barnesHutOptimize: true,
-            // gravity: 0.7,
-          },
-        });
-        console.timeEnd('layout');
+        // console.time('layout');
+        // forceAtlas2.assign(graph, {
+        //   iterations: 300,
+        //   settings: {
+        //     ...forceAtlas2.inferSettings(graph),
+        //     scalingRatio: 500,
+        //     barnesHutOptimize: true,
+        //     // gravity: 0.7,
+        //   },
+        // });
+        // console.timeEnd('layout');
         // const positions = await (await fetch('miserables-positions.json')).json();
         // graph.forEachNode((node) => {
         //   const position = positions[node];
@@ -180,9 +180,38 @@
         ];
         await new FontFaceObserver('Material Icons').load();
 
+        const container = document.getElementById('graph');
         const pixiGraph = new PixiGraph.PixiGraph({
-          container: document.getElementById('graph'),
+          container,
           graph,
+          layout: {
+            type: 'forceAtlas2',
+
+            width: container.getBoundingClientRect().width,
+            height: container.getBoundingClientRect().height,
+
+            // common config
+            nodeSize: 60,
+            preventOverlap: true,
+            preventOverlapPadding: 500,
+            linkDistance: 250,
+
+            // circular
+            radius: 1000,
+
+            // concentric
+
+            // grid
+
+            // dagre
+
+            // forceAtlas2
+            kr: 200,
+
+            // gForce
+
+            // gForce-gpu
+          },
           style,
           hoverStyle,
           selectStyle,
